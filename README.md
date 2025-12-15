@@ -72,7 +72,7 @@ cp .env.example .env
 nano .env
 
 # Run the server
-uvicorn app.main:APPLICATION --reload --host 0.0.0.0 --port 8000 --proxy-headers
+uvicorn app.main:APPLICATION --reload --host 0.0.0.0 --port 8000
 ```
 
 ---
