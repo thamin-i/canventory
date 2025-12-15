@@ -152,18 +152,18 @@ Canventory is configured via environment variables. Copy `.env.example` to `.env
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | - | `true` |
-| `SECRET_KEY` | JWT secret key | - | `true` |
-| `DEBUG` | Enable debug mode | `false` | `true` |
-| `SMTP_ENABLED` | Enable email notifications | `false` | `true` |
-| `SMTP_HOST` | SMTP server hostname | - | `false` |
-| `SMTP_PORT` | SMTP server port | `587` | `false` |
-| `SMTP_USER` | SMTP username | - | `false` |
-| `SMTP_PASSWORD` | SMTP password | - | `false` |
-| `SMTP_FROM_EMAIL` | Sender email address | - | `false` |
-| `EXPIRATION_WARNING_DAYS` | Days before expiration to warn | `7` | `true` |
-| `EXPIRATION_CRITICAL_DAYS` | Days before expiration for critical alert | `3` | `true` |
-| `CHECK_EXPIRATION_INTERVAL_HOURS` | How often to check expirations | `24` | `true` |
+| `DATABASE_URL` | PostgreSQL connection string | `sqlite+aiosqlite:///./canventory.db` | ✅ |
+| `SECRET_KEY` | JWT secret key | `secrets.token_urlsafe(32)` | ✅ |
+| `DEBUG` | Enable debug mode | `false` | ✅ |
+| `SMTP_ENABLED` | Enable email notifications | `false` | ✅ |
+| `SMTP_HOST` | SMTP server hostname | `localhost` | 	❌ |
+| `SMTP_PORT` | SMTP server port | `587` | 	❌ |
+| `SMTP_USER` | SMTP username | - | 	❌ |
+| `SMTP_PASSWORD` | SMTP password | - | 	❌ |
+| `SMTP_FROM_EMAIL` | Sender email address | - | 	❌ |
+| `EXPIRATION_WARNING_DAYS` | Days before expiration to warn | `7` | ✅ |
+| `EXPIRATION_CRITICAL_DAYS` | Days before expiration for critical alert | `3` | ✅ |
+| `CHECK_EXPIRATION_INTERVAL_HOURS` | How often to check expirations | `24` | ✅ |
 
 ---
 

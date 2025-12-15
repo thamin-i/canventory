@@ -5,7 +5,7 @@ import typing as t
 from pydantic import BaseModel
 
 
-class FoodClosetStats(BaseModel):
+class CanventoryStats(BaseModel):
     """Schema for food closet statistics."""
 
     total_items: int

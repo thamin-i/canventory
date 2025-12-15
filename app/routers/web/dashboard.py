@@ -11,8 +11,8 @@ from app.core.database import get_db
 from app.core.globals import TEMPLATES
 from app.core.models import FoodCategory, User
 from app.services.item_service import (
+    CanventoryStats,
     ExpirationAlertSummary,
-    FoodClosetStats,
     FoodItemListResponse,
     ItemService,
 )
@@ -77,7 +77,7 @@ async def dashboard(  # pylint: disable=too-many-arguments,too-many-positional-a
     else:
         total_pages = result.total_pages
 
-    stats_data: FoodClosetStats = await service.get_statistics()
+    stats_data: CanventoryStats = await service.get_statistics()
     alerts_data: ExpirationAlertSummary = await service.get_expiration_alerts()
 
     stats: t.Dict[str, t.Any] = {

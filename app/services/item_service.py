@@ -17,7 +17,7 @@ from app.core.config import SETTINGS
 from app.core.models import ExpirationStatus, FoodCategory, FoodItem
 from app.schemas.alert import ExpirationAlert, ExpirationAlertSummary
 from app.schemas.food_item import FoodItemListResponse, FoodItemResponse
-from app.schemas.statistics import FoodClosetStats
+from app.schemas.statistics import CanventoryStats
 from app.utils.dates import calculate_days_until_expiration
 
 
@@ -520,11 +520,11 @@ class ItemService:
             warning_items=warning_items,
         )
 
-    async def get_statistics(self) -> FoodClosetStats:
+    async def get_statistics(self) -> CanventoryStats:
         """Get overall statistics for the food closet.
 
         Returns:
-            FoodClosetStats: The food closet statistics.
+            CanventoryStats: The food closet statistics.
         """
         items: t.Sequence[FoodItem] = (
             (await self.db.execute(select(FoodItem))).scalars().all()
@@ -559,7 +559,7 @@ class ItemService:
             ):
                 items_expiring_soon += 1
 
-        return FoodClosetStats(
+        return CanventoryStats(
             total_items=total_items,
             total_quantity=total_quantity,
             items_by_category=items_by_category,

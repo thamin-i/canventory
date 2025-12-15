@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./food_closet.db"
+    database_url: str = "sqlite+aiosqlite:///./canventory.db"
 
     # Authentication
     secret_key: str = secrets.token_urlsafe(32)
@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from_email: str = "foodcloset@localhost"
+    smtp_from_email: str = "canventory@localhost"
 
 
 SETTINGS = Settings()

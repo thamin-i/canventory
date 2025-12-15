@@ -16,7 +16,7 @@ from app.schemas.food_item import (
     FoodItemResponse,
     FoodItemUpdate,
 )
-from app.schemas.statistics import FoodClosetStats
+from app.schemas.statistics import CanventoryStats
 from app.services import (
     ImageTooLargeError,
     InvalidImageError,
@@ -101,13 +101,13 @@ async def get_expiration_alerts(
     return await ItemService(db).get_expiration_alerts()
 
 
-@ROUTER.get("/stats", response_model=FoodClosetStats)
+@ROUTER.get("/stats", response_model=CanventoryStats)
 async def get_statistics(
     db: t.Annotated[AsyncSession, Depends(get_db)],
     current_user: t.Annotated[  # pylint: disable=unused-argument
         User, Depends(get_current_active_user)
     ],
-) -> FoodClosetStats:
+) -> CanventoryStats:
     """Get overall statistics for the food closet.
 
     Args:
@@ -115,7 +115,7 @@ async def get_statistics(
         current_user (User): The currently authenticated user.
 
     Returns:
-        FoodClosetStats: The food closet statistics.
+        CanventoryStats: The food closet statistics.
     """
     return await ItemService(db).get_statistics()
 
