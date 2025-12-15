@@ -27,6 +27,11 @@
   <img src="https://img.shields.io/badge/FastAPI-0.100+-00a393.svg" alt="FastAPI">
   <img src="https://img.shields.io/badge/PostgreSQL-13+-336791.svg" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License">
+  <img src="https://img.shields.io/badge/vibe_coded-✨_AI_Generated-ff69b4.svg" alt="Vibe Coded">
+</p>
+
+<p align="center">
+  <em>🤖 This project was initially vibe-coded with AI assistance, then reviewed and updated by me, a human.</em>
 </p>
 
 ---
