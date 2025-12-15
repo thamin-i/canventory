@@ -63,19 +63,15 @@ Canventory solves this by giving you:
 
 ## 📸 Screenshots
 
-<!-- Add your screenshots here -->
 <p align="center">
-  <em>Coming soon - contribute by adding screenshots!</em>
-</p>
-
-<!--
-<p align="center">
-  <img src="docs/images/dashboard.png" alt="Dashboard" width="80%">
+  <img src="screenshots/login.png" alt="Login" width="80%">
 </p>
 <p align="center">
-  <img src="docs/images/item-form.png" alt="Add Item" width="80%">
+  <img src="screenshots/dashboard.png" alt="Dashboard" width="80%">
 </p>
--->
+<p align="center">
+  <img src="screenshots/new_item.png" alt="New Item" width="80%">
+</p>
 
 ---
 
