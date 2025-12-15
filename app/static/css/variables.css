@@ -1,0 +1,100 @@
+/* ============================================
+   Canventory - Design System Variables
+   CSS Custom Properties (Design Tokens)
+   ============================================ */
+
+:root {
+  /* Color Palette - Warm Terracotta & Sage (Light Mode) */
+  --color-primary: #c45c3e;
+  --color-primary-dark: #a04a32;
+  --color-primary-light: #e8a090;
+
+  --color-sage: #7d9a78;
+  --color-sage-dark: #5f7a5a;
+  --color-sage-light: #b5d4af;
+
+  --color-cream: #faf6f0;
+  --color-warm-white: #fffcf7;
+  --color-sand: #f0e6d8;
+  --color-wheat: #e8dcc8;
+
+  --color-text: #2d2a26;
+  --color-text-muted: #6b6560;
+  --color-text-light: #9a9590;
+
+  /* Status Colors */
+  --color-fresh: #4a9b6d;
+  --color-fresh-bg: #e8f5ee;
+  --color-warning: #d4a03d;
+  --color-warning-bg: #fdf4e3;
+  --color-critical: #d66853;
+  --color-critical-bg: #fce8e4;
+  --color-expired: #8b7070;
+  --color-expired-bg: #f0e8e8;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Typography */
+  --font-display: "Fraunces", serif;
+  --font-body: "Outfit", sans-serif;
+
+  /* Borders & Shadows */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 1px 2px rgba(45, 42, 38, 0.06);
+  --shadow-md: 0 4px 12px rgba(45, 42, 38, 0.08);
+  --shadow-lg: 0 8px 24px rgba(45, 42, 38, 0.12);
+  --shadow-xl: 0 16px 48px rgba(45, 42, 38, 0.16);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}
+
+/* ============================================
+   Dark Theme
+   ============================================ */
+
+[data-theme="dark"] {
+  --color-primary: #e07a5f;
+  --color-primary-dark: #c45c3e;
+  --color-primary-light: #f4a68a;
+
+  --color-sage: #8fb88a;
+  --color-sage-dark: #7d9a78;
+  --color-sage-light: #a8d4a2;
+
+  --color-cream: #1a1815;
+  --color-warm-white: #242220;
+  --color-sand: #2d2a26;
+  --color-wheat: #3d3935;
+
+  --color-text: #f5f0e8;
+  --color-text-muted: #a8a29e;
+  --color-text-light: #78716c;
+
+  /* Status Colors - Dark Mode */
+  --color-fresh: #5cb87a;
+  --color-fresh-bg: #1a2e20;
+  --color-warning: #e5b84c;
+  --color-warning-bg: #2e2815;
+  --color-critical: #e8796a;
+  --color-critical-bg: #2e1a18;
+  --color-expired: #a08888;
+  --color-expired-bg: #2a2525;
+
+  /* Shadows - Dark Mode */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.5);
+}

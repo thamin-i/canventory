@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Canventory{% endblock %}
+{% block body_class %}app-page{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+
+{% if message %}
+<div class="alert-banner success">
+    <span>✅ {{ message }}</span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert-banner error">
+    <span>❌ {{ error }}</span>
+</div>
+{% endif %}
+
+<!-- Settings Container -->
+<main class="settings-container">
+    <!-- Notifications Section -->
+    <section class="settings-card">
+        <div class="settings-card-header">
+            <h2>✉️ Notifications</h2>
+            <p class="settings-description">Configure how you receive alerts about expiring items</p>
+        </div>
+
+        <div class="settings-section">
+            <h3>Email Notifications</h3>
+            <div class="setting-row">
+                <div class="setting-info">
+                    <span class="setting-label">Email Alerts</span>
+                    <span class="setting-help">Receive daily email digests about expiring items at {{ user.email
+                        }}</span>
+                </div>
+                <div class="setting-control">
+                    <button id="email-toggle" class="toggle-button" onclick="toggleEmailNotifications()" {% if not
+                        smtp_enabled %}disabled{% endif %}>
+                        <span class="toggle-icon {% if user.email_notifications_enabled %}hidden{% endif %}"
+                            id="email-icon-off">🔕</span>
+                        <span class="toggle-icon {% if not user.email_notifications_enabled %}hidden{% endif %}"
+                            id="email-icon-on">🔔</span>
+                        <span class="toggle-text" id="email-status">{% if user.email_notifications_enabled %}Enabled{%
+                            else %}Enable{% endif %}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="setting-row {% if not user.email_notifications_enabled %}hidden{% endif %}" id="test-email-row">
+                <div class="setting-info">
+                    <span class="setting-label">Test Email</span>
+                    <span class="setting-help">Send a test email to verify everything is working</span>
+                </div>
+                <div class="setting-control">
+                    <button class="btn btn-ghost" onclick="sendTestEmail()" {% if not smtp_enabled %}disabled{% endif
+                        %}>
+                        🧪 Test
+                    </button>
+                </div>
+            </div>
+
+            {% if not smtp_enabled %}
+            <div class="setting-warning">
+                <span>⚠️</span>
+                <span>Email notifications are not available. SMTP is not configured on the server.</span>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Account Section -->
+    <section class="settings-card">
+        <div class="settings-card-header">
+            <h2>👤 Account</h2>
+            <p class="settings-description">Your account information</p>
+        </div>
+
+        <div class="settings-section">
+            <div class="account-info-grid">
+                <div class="account-info-item">
+                    <span class="account-label">Username</span>
+                    <span class="account-value">{{ user.username }}</span>
+                </div>
+                <div class="account-info-item">
+                    <span class="account-label">Email</span>
+                    <span class="account-value" id="current-email">{{ user.email }}</span>
+                </div>
+                <div class="account-info-item">
+                    <span class="account-label">Role</span>
+                    <span class="account-value">
+                        {% if user.is_admin %}
+                        <span class="badge badge-admin">👑 Administrator</span>
+                        {% else %}
+                        <span class="badge badge-user">User</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="account-info-item">
+                    <span class="account-label">Member since</span>
+                    <span class="account-value">{{ user.created_at }}</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Section -->
+    <section class="settings-card">
+        <div class="settings-card-header">
+            <h2>🔐 Security</h2>
+            <p class="settings-description">Manage your password and email</p>
+        </div>
+
+        <!-- Change Password -->
+        <div class="settings-section">
+            <h3>Change Password</h3>
+            <form id="password-form" class="security-form" onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label for="current-password">Current Password</label>
+                    <input type="password" id="current-password" name="current_password" required
+                        autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New Password</label>
+                    <input type="password" id="new-password" name="new_password" required minlength="8"
+                        autocomplete="new-password">
+                    <span class="setting-help">Minimum 8 characters</span>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm New Password</label>
+                    <input type="password" id="confirm-password" name="confirm_password" required minlength="8"
+                        autocomplete="new-password">
+                </div>
+                <div class="form-actions-inline">
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Change Email -->
+        <div class="settings-section">
+            <h3>Change Email</h3>
+            <form id="email-form" class="security-form" onsubmit="changeEmail(event)">
+                <div class="form-group">
+                    <label for="new-email">New Email Address</label>
+                    <input type="email" id="new-email" name="new_email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="email-password">Password</label>
+                    <input type="password" id="email-password" name="password" required
+                        autocomplete="current-password">
+                    <span class="setting-help">Confirm your password to change email</span>
+                </div>
+                <div class="form-actions-inline">
+                    <button type="submit" class="btn btn-primary">Update Email</button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+</main>
+
+{% block scripts %}
+
+<script>
+    // Email notification toggle
+    let emailEnabled = {{ 'true' if user.email_notifications_enabled else 'false' }};
+
+    async function toggleEmailNotifications() {
+        const newState = !emailEnabled;
+
+        try {
+            const response = await fetch('/web/settings/notifications', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ enabled: newState }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                emailEnabled = newState;
+                updateEmailUI(newState);
+                showToast(newState ? 'Email notifications enabled!' : 'Email notifications disabled', 'success');
+            } else {
+                showToast(result.message || 'Failed to update email settings', 'error');
+            }
+        } catch (error) {
+            showToast('Failed to update email settings', 'error');
+        }
+    }
+
+    function updateEmailUI(enabled) {
+        const iconOn = document.getElementById('email-icon-on');
+        const iconOff = document.getElementById('email-icon-off');
+        const status = document.getElementById('email-status');
+        const testRow = document.getElementById('test-email-row');
+
+        if (iconOn && iconOff && status) {
+            if (enabled) {
+                iconOn.classList.remove('hidden');
+                iconOff.classList.add('hidden');
+                status.textContent = 'Enabled';
+                if (testRow) testRow.classList.remove('hidden');
+            } else {
+                iconOn.classList.add('hidden');
+                iconOff.classList.remove('hidden');
+                status.textContent = 'Enable';
+                if (testRow) testRow.classList.add('hidden');
+            }
+        }
+    }
+
+    // Send test email
+    async function sendTestEmail() {
+        try {
+            const response = await fetch('/web/settings/test-email', {
+                method: 'POST',
+                credentials: 'include',
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Test email sent! Check your inbox.', 'success');
+            } else {
+                showToast(result.message || 'Failed to send test email', 'error');
+            }
+        } catch (error) {
+            showToast('Failed to send test email', 'error');
+        }
+    }
+
+    // Change password
+    async function changePassword(event) {
+        event.preventDefault();
+
+        const currentPassword = document.getElementById('current-password').value;
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        if (newPassword !== confirmPassword) {
+            showToast('New passwords do not match', 'error');
+            return;
+        }
+
+        if (newPassword.length < 8) {
+            showToast('New password must be at least 8 characters', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/web/settings/change-password', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Password changed successfully!', 'success');
+                document.getElementById('password-form').reset();
+            } else {
+                showToast(result.message || 'Failed to change password', 'error');
+            }
+        } catch (error) {
+            showToast('Failed to change password', 'error');
+        }
+    }
+
+    // Change email
+    async function changeEmail(event) {
+        event.preventDefault();
+
+        const newEmail = document.getElementById('new-email').value;
+        const password = document.getElementById('email-password').value;
+
+        try {
+            const response = await fetch('/web/settings/change-email', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    new_email: newEmail,
+                    password: password,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showToast('Email changed successfully!', 'success');
+                document.getElementById('email-form').reset();
+                // Update displayed email
+                const emailDisplay = document.getElementById('current-email');
+                if (emailDisplay) {
+                    emailDisplay.textContent = result.new_email;
+                }
+            } else {
+                showToast(result.message || 'Failed to change email', 'error');
+            }
+        } catch (error) {
+            showToast('Failed to change email', 'error');
+        }
+    }
+</script>
+
+{% endblock %}
+
+{% endblock %}

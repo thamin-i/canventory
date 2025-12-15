@@ -1,0 +1,8 @@
+Hi {{ username }},
+
+This is a test email from Canventory.
+
+If you received this message, your email notifications are working correctly!
+
+---
+Canventory - Food Inventory Management

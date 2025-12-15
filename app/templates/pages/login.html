@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Canventory{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block content %}
+
+<div class="login-container">
+    <div class="login-art">
+        <div class="floating-icons">
+            <span class="icon">🥫</span>
+            <span class="icon">🍎</span>
+            <span class="icon">🥜</span>
+            <span class="icon">🍝</span>
+            <span class="icon">🥣</span>
+            <span class="icon">🫘</span>
+        </div>
+    </div>
+    <div class="login-form-wrapper">
+        <div class="login-header">
+            <div class="login-title-row">
+                <h1>Canventory</h1>
+                <button class="theme-toggle" title="Toggle dark mode">
+                    <span class="icon-sun">☀️</span>
+                    <span class="icon-moon">🌙</span>
+                </button>
+            </div>
+            <p>Manage your pantry with care</p>
+        </div>
+
+        {% if registration_enabled is not defined or registration_enabled %}
+        <div class="auth-tabs">
+            <button class="tab-btn active" data-tab="login">Sign In</button>
+            <button class="tab-btn" data-tab="register">Register</button>
+        </div>
+        {% endif %}
+
+        <form id="login-form" class="auth-form active" method="post" action="/web/login">
+            <div class="form-group">
+                <label for="login-username">Username</label>
+                <input type="text" id="login-username" name="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" name="password" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">
+                <span>Enter Pantry</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+            </button>
+        </form>
+
+        {% if registration_enabled is not defined or registration_enabled %}
+        <form id="register-form" class="auth-form" method="post" action="/web/register">
+            <div class="form-group">
+                <label for="register-username">Username</label>
+                <input type="text" id="register-username" name="username" required minlength="3">
+            </div>
+            <div class="form-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" name="email" required>
+            </div>
+            <div class="form-group">
+                <label for="register-password">Password</label>
+                <input type="password" id="register-password" name="password" required minlength="8">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">
+                <span>Create Account</span>
+            </button>
+        </form>
+        {% endif %}
+
+        {% if error %}
+        <div class="error-message show">{{ error }}</div>
+        {% endif %}
+
+        {% if success %}
+        <div class="success-message show">{{ success }}</div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auth tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.auth-form').forEach(form => form.classList.remove('active'));
+                document.getElementById(`${tab}-form`).classList.add('active');
+            });
+        });
+    });
+</script>
+
+{% endblock %}

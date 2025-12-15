@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#faf6f0">
+    <meta name="description" content="Manage your pantry - track canned and non-perishable food items">
+
+    <title>{% block title %}Canventory{% endblock %}</title>
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='icons/icon.svg') }}">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    {% block head %}{% endblock %}
+
+    <script>
+        // Apply theme immediately to prevent flash
+        (function () {
+            const theme = localStorage.getItem('canventory_theme') ||
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+            // Update theme-color meta
+            const metaTheme = document.querySelector('meta[name="theme-color"]');
+            if (metaTheme) {
+                metaTheme.content = theme === 'dark' ? '#1a1815' : '#faf6f0';
+            }
+        })();
+    </script>
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+    {% block content %}{% endblock %}
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Modal Container (initialized by JS) -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-container" id="modal-container">
+            <div class="modal-header">
+                <div class="modal-icon" id="modal-icon">⚠️</div>
+                <div class="modal-header-text">
+                    <h3 class="modal-title" id="modal-title">Title</h3>
+                    <p class="modal-subtitle" id="modal-subtitle"></p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <p class="modal-message" id="modal-message">Message</p>
+            </div>
+            <div class="modal-footer" id="modal-footer"></div>
+        </div>
+    </div>
+
+    <!-- Main JS Module (imports all other modules) -->
+    <script type="module" src="{{ url_for('static', path='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

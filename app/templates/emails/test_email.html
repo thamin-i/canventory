@@ -1,0 +1,15 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<div style="text-align: center;">
+    <div class="success">✅</div>
+    <h1>Test Successful!</h1>
+    <p>Hi {{ username }},</p>
+    <p>This is a test email from Canventory.</p>
+    <p>If you received this message, your email notifications are working correctly!</p>
+</div>
+{% endblock %}
+
+{% block footer %}
+<p>Canventory - Food Inventory Management</p>
+{% endblock %}

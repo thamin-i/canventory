@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Canventory{% endblock %}
+{% block body_class %}app-page{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+
+<!-- Admin Stats -->
+<section class="stats-bar">
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-content">
+            <span class="stat-value">{{ users | length }}</span>
+            <span class="stat-label">Total Users</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+            <span class="stat-value">{{ users | selectattr('is_active') | list | length }}</span>
+            <span class="stat-label">Active Users</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">👑</div>
+        <div class="stat-content">
+            <span class="stat-value">{{ users | selectattr('is_admin') | list | length }}</span>
+            <span class="stat-label">Admins</span>
+        </div>
+    </div>
+</section>
+
+{% if message %}
+<div class="alert-banner success">
+    <span>✅ {{ message }}</span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert-banner error">
+    <span>❌ {{ error }}</span>
+</div>
+{% endif %}
+
+<!-- System Settings -->
+<main class="admin-container">
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>System Settings</h2>
+        </div>
+        <div class="settings-section">
+            <div class="setting-row">
+                <div class="setting-info">
+                    <span class="setting-label">User Registration</span>
+                    <span class="setting-help">Allow new users to register from the login page</span>
+                </div>
+                <div class="setting-control">
+                    <form method="post" action="/web/admin/settings/registration/toggle" class="inline-form">
+                        <label class="toggle-switch">
+                            <input type="checkbox" {% if registration_enabled %}checked{% endif %}
+                                onchange="this.form.submit()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>User Management</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Role</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>
+                            <strong>{{ u.username }}</strong>
+                            {% if u.id == user.id %}
+                            <span class="badge badge-info">You</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ u.email }}</td>
+                        <td>
+                            {% if u.is_active %}
+                            <span class="badge badge-success">Active</span>
+                            {% else %}
+                            <span class="badge badge-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_admin %}
+                            <span class="badge badge-admin">👑 Admin</span>
+                            {% else %}
+                            <span class="badge badge-user">User</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ u.created_at }}</td>
+                        <td class="actions-cell">
+                            {% if u.id != user.id %}
+                            <div class="action-buttons">
+                                {% if u.is_active %}
+                                <form method="post" action="/web/admin/users/{{ u.id }}/deactivate" class="inline-form">
+                                    <button type="submit" class="btn btn-sm btn-ghost" title="Deactivate">
+                                        🚫
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="/web/admin/users/{{ u.id }}/activate" class="inline-form">
+                                    <button type="submit" class="btn btn-sm btn-ghost" title="Activate">
+                                        ✅
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                {% if u.is_admin %}
+                                <form method="post" action="/web/admin/users/{{ u.id }}/demote" class="inline-form">
+                                    <button type="submit" class="btn btn-sm btn-ghost" title="Remove Admin">
+                                        👤
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="/web/admin/users/{{ u.id }}/promote" class="inline-form">
+                                    <button type="submit" class="btn btn-sm btn-ghost" title="Make Admin">
+                                        👑
+                                    </button>
+                                </form>
+                                {% endif %}
+
+                                <form method="post" action="/web/admin/users/{{ u.id }}/delete" class="inline-form"
+                                    data-confirm="delete" data-confirm-item="{{ u.username }}"
+                                    data-confirm-type="user-delete">
+                                    <button type="submit" class="btn btn-sm btn-ghost btn-danger-text"
+                                        title="Delete User">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add New User -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>Add New User</h2>
+            <p class="settings-description">Manually create users (bypasses registration setting)</p>
+        </div>
+        <form method="post" action="/web/admin/users/create" class="admin-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-username">Username</label>
+                    <input type="text" id="new-username" name="username" required minlength="3" maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label for="new-email">Email</label>
+                    <input type="email" id="new-email" name="email" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-password">Password</label>
+                    <input type="password" id="new-password" name="password" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="new-is-admin">Role</label>
+                    <select id="new-is-admin" name="is_admin">
+                        <option value="0">Regular User</option>
+                        <option value="1">Administrator</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span>Create User</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</main>
+
+{% endblock %}

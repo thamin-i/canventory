@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#c45c3e"/>
+  <g transform="translate(128, 80)">
+    <!-- Can body -->
+    <rect x="32" y="60" width="192" height="260" rx="16" fill="#f5f0e8"/>
+    <rect x="32" y="60" width="192" height="40" rx="8" fill="#e8dcc8"/>
+    <rect x="32" y="280" width="192" height="40" rx="8" fill="#e8dcc8"/>
+    <!-- Can ridges -->
+    <rect x="40" y="110" width="176" height="6" fill="#e8dcc8"/>
+    <rect x="40" y="130" width="176" height="6" fill="#e8dcc8"/>
+    <rect x="40" y="230" width="176" height="6" fill="#e8dcc8"/>
+    <rect x="40" y="250" width="176" height="6" fill="#e8dcc8"/>
+    <!-- Label area -->
+    <rect x="56" y="150" width="144" height="70" rx="8" fill="#7d9a78"/>
+    <text x="128" y="195" text-anchor="middle" fill="#fff" font-family="Arial" font-size="24" font-weight="bold">FOOD</text>
+  </g>
+</svg>

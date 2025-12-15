@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if item else 'Add' }} Item - Canventory{% endblock %}
+{% block body_class %}app-page{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+
+<main class="form-container">
+    <form method="post" enctype="multipart/form-data" class="item-form-card">
+        {% if error %}
+        <div class="error-message show">{{ error }}</div>
+        {% endif %}
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="name">Name *</label>
+                <input type="text" id="name" name="name" required maxlength="255"
+                    value="{{ item.name if item else (prefill.name if prefill else '') }}">
+            </div>
+            <div class="form-group">
+                <label for="quantity">Quantity *</label>
+                <input type="number" id="quantity" name="quantity" required min="1"
+                    value="{{ item.quantity if item else 1 }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category">
+                    {% for cat in categories %}
+                    <option value="{{ cat.value }}" {% if item and item.category==cat.value %}selected {% elif not item
+                        and prefill and prefill.category==cat.value %}selected {% endif %}>
+                        {{ cat.label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="expiration_date">Expiration Date *</label>
+                <input type="date" id="expiration_date" name="expiration_date" required
+                    value="{{ item.expiration_date[:10] if item else default_date }}">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="3"
+                maxlength="1000">{{ item.description if item and item.description else (prefill.description if prefill else '') }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Image</label>
+            <div class="image-upload-area" id="image-upload-area">
+                <input type="file" id="image" name="image" accept="image/*">
+                {% if item and item.has_image %}
+                <div class="current-image">
+                    <img src="/web/items/{{ item.id }}/image" alt="Current image">
+                    <p>Current image (upload new to replace)</p>
+                </div>
+                <label class="remove-image-label">
+                    <input type="checkbox" name="remove_image" value="1">
+                    Remove current image
+                </label>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="/web/dashboard" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <span>{{ 'Save Changes' if item else 'Add Item' }}</span>
+            </button>
+        </div>
+    </form>
+</main>
+
+{% endblock %}

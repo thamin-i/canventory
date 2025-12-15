@@ -1,0 +1,54 @@
+{% extends "emails/base.html" %}
+
+{% block content %}
+<div class="header">
+    <h1>🥫 Canventory Alert</h1>
+    <p>Hi {{ username }}, here's your expiration report</p>
+</div>
+
+{% if expired %}
+<div class="section expired">
+    <div class="section-title">⚠️ Expired Items</div>
+    <ul class="item-list">
+        {% for item in expired %}
+        <li class="item">
+            <span class="item-name">{{ item.name }}</span>
+            <span class="item-details"> × {{ item.quantity }} — Expired: {{ item.expiration_date[:10] }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if critical %}
+<div class="section critical">
+    <div class="section-title">🚨 Expiring within {{ critical_days }} days</div>
+    <ul class="item-list">
+        {% for item in critical %}
+        <li class="item">
+            <span class="item-name">{{ item.name }}</span>
+            <span class="item-details"> × {{ item.quantity }} — Expires: {{ item.expiration_date[:10] }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if warning %}
+<div class="section warning">
+    <div class="section-title">📋 Expiring within {{ warning_days }} days</div>
+    <ul class="item-list">
+        {% for item in warning %}
+        <li class="item">
+            <span class="item-name">{{ item.name }}</span>
+            <span class="item-details"> × {{ item.quantity }} — Expires: {{ item.expiration_date[:10] }}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div style="text-align: center;">
+    <a href="/web/dashboard" class="button">View Dashboard</a>
+</div>
+{% endblock %}

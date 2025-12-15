@@ -1,0 +1,53 @@
+{% block content %}
+
+<header class="app-header">
+    <div class="header-left">
+        <div class="setting-control">
+            <button class="theme-toggle-btn" onclick="ThemeManager.toggle()">
+                <span class="icon-sun">☀️</span>
+                <span class="icon-moon">🌙</span>
+            </button>
+        </div>
+    </div>
+    <div class="header-center">
+        <a href="/web/dashboard" class="btn btn-ghost">
+            <h1 class="logo">🥫 Canventory</h1>
+        </a>
+    </div>
+    <div class="header-right">
+        <button class="burger-menu-btn" id="burger-menu-btn" aria-label="Open menu">
+            <span class="menu-icon-open">☰</span>
+            <span class="menu-icon-close">✕</span>
+        </button>
+        <div class="header-dropdown" id="header-dropdown">
+            <div class="header-dropdown-item info">
+                <span>👋</span>
+                <span>Welcome, {{ user.username }}!</span>
+            </div>
+            <div class="header-dropdown-divider"></div>
+            <a href="/web/settings"
+                class="header-dropdown-item{% if request.path.startswith('/web/settings') %} active{% endif %}">
+                <span>⚙️</span>
+                <span>Settings</span>
+            </a>
+            {% if user.is_admin %}
+            <a href="/web/admin"
+                class="header-dropdown-item{% if request.path.startswith('/web/admin') %} active{% endif %}">
+                <span>👑</span>
+                <span>Admin Panel</span>
+            </a>
+            {% endif %}
+            <div class="header-dropdown-divider"></div>
+            <a href="/web/logout" class="header-dropdown-item danger">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+{% endblock %}

@@ -1,0 +1,35 @@
+==================================================
+CANVENTORY EXPIRATION REPORT
+Hi {{ username }},
+==================================================
+
+{% if expired %}
+⚠️ EXPIRED ITEMS:
+------------------------------
+{% for item in expired %}
+  • {{ item.name }} (x{{ item.quantity }}) - Expired: {{ item.expiration_date[:10] }}
+{% endfor %}
+
+{% endif %}
+{% if critical %}
+🚨 CRITICAL - Expiring within {{ critical_days }} days:
+------------------------------
+{% for item in critical %}
+  • {{ item.name }} (x{{ item.quantity }}) - Expires: {{ item.expiration_date[:10] }}
+{% endfor %}
+
+{% endif %}
+{% if warning %}
+📋 WARNING - Expiring within {{ warning_days }} days:
+------------------------------
+{% for item in warning %}
+  • {{ item.name }} (x{{ item.quantity }}) - Expires: {{ item.expiration_date[:10] }}
+{% endfor %}
+
+{% endif %}
+
+View your dashboard: /web/dashboard
+
+---
+You're receiving this because you have email notifications enabled.
+Manage your settings in the Canventory app.
