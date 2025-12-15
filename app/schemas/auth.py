@@ -47,7 +47,6 @@ class RegistrationResult(BaseModel):
     """Result of user registration."""
 
     user: UserResponse
-    is_first_user: bool
 
 
 class LoginResult(BaseModel):

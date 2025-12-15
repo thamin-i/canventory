@@ -13,7 +13,7 @@
         {% for item in expired %}
         <li class="item">
             <span class="item-name">{{ item.name }}</span>
-            <span class="item-details"> × {{ item.quantity }} — Expired: {{ item.expiration_date[:10] }}</span>
+            <span class="item-details"> × {{ item.quantity }} - Expired: {{ item.expiration_date[:10] }}</span>
         </li>
         {% endfor %}
     </ul>
@@ -27,7 +27,7 @@
         {% for item in critical %}
         <li class="item">
             <span class="item-name">{{ item.name }}</span>
-            <span class="item-details"> × {{ item.quantity }} — Expires: {{ item.expiration_date[:10] }}</span>
+            <span class="item-details"> × {{ item.quantity }} - Expires: {{ item.expiration_date[:10] }}</span>
         </li>
         {% endfor %}
     </ul>
@@ -41,7 +41,7 @@
         {% for item in warning %}
         <li class="item">
             <span class="item-name">{{ item.name }}</span>
-            <span class="item-details"> × {{ item.quantity }} — Expires: {{ item.expiration_date[:10] }}</span>
+            <span class="item-details"> × {{ item.quantity }} - Expires: {{ item.expiration_date[:10] }}</span>
         </li>
         {% endfor %}
     </ul>

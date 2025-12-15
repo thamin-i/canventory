@@ -148,7 +148,6 @@ class AuthService:
 
         return RegistrationResult(
             user=self._user_to_response(new_user),
-            is_first_user=False,
         )
 
     async def login(self, username: str, password: str) -> LoginResult:

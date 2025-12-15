@@ -77,6 +77,7 @@
             <p class="settings-description">Your account information</p>
         </div>
 
+        <!-- Account Info -->
         <div class="settings-section">
             <div class="account-info-grid">
                 <div class="account-info-item">
@@ -102,6 +103,25 @@
                     <span class="account-value">{{ user.created_at }}</span>
                 </div>
             </div>
+        </div>
+
+        <!-- Change Email -->
+        <div class="settings-section">
+            <h3>Change Email</h3>
+            <form id="email-form" class="security-form" onsubmit="changeEmail(event)">
+                <div class="form-group">
+                    <label for="new-email">New Email Address</label>
+                    <input type="email" id="new-email" name="new_email" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="email-password">Password</label>
+                    <input type="password" id="email-password" name="password" required autocomplete="current-password">
+                    <span class="setting-help">Confirm your password to change email</span>
+                </div>
+                <div class="form-actions-inline">
+                    <button type="submit" class="btn btn-primary">Update Email</button>
+                </div>
+            </form>
         </div>
     </section>
 
@@ -134,26 +154,6 @@
                 </div>
                 <div class="form-actions-inline">
                     <button type="submit" class="btn btn-primary">Update Password</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Change Email -->
-        <div class="settings-section">
-            <h3>Change Email</h3>
-            <form id="email-form" class="security-form" onsubmit="changeEmail(event)">
-                <div class="form-group">
-                    <label for="new-email">New Email Address</label>
-                    <input type="email" id="new-email" name="new_email" required autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="email-password">Password</label>
-                    <input type="password" id="email-password" name="password" required
-                        autocomplete="current-password">
-                    <span class="setting-help">Confirm your password to change email</span>
-                </div>
-                <div class="form-actions-inline">
-                    <button type="submit" class="btn btn-primary">Update Email</button>
                 </div>
             </form>
         </div>

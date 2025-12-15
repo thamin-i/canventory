@@ -9,7 +9,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.globals import TEMPLATES
 from app.core.models import User
-from app.schemas.auth import RegistrationResult
 from app.services import (
     AuthService,
     EmailExistsError,
@@ -121,17 +120,12 @@ async def register_submit(
     """
     service: AuthService = AuthService(db)
     try:
-        result: RegistrationResult = await service.register_user(
+        await service.register_user(
             username=username,
             email=email,
             password=password,
         )
-
-        success_msg: str = (
-            "Account created! You are the admin."
-            if result.is_first_user
-            else "Account created! Please log in."
-        )
+        success_msg: str = "Account created! Please log in."
         return RedirectResponse(
             url=f"/web/login?success={success_msg}", status_code=303
         )
