@@ -6,7 +6,6 @@ from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     LargeBinary,
@@ -18,30 +17,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.utils.dates import calculate_days_until_expiration
-
-
-class FoodCategory(str, enum.Enum):
-    """Categories for food items."""
-
-    CANNED_VEGETABLES = "canned_vegetables"
-    CANNED_FRUITS = "canned_fruits"
-    CANNED_MEATS = "canned_meats"
-    CANNED_SOUPS = "canned_soups"
-    GRAINS = "grains"
-    PASTA = "pasta"
-    RICE = "rice"
-    CEREALS = "cereals"
-    BEANS = "beans"
-    NUTS = "nuts"
-    DRIED_FRUITS = "dried_fruits"
-    CONDIMENTS = "condiments"
-    OILS = "oils"
-    BAKING = "baking"
-    SNACKS = "snacks"
-    BEVERAGES = "beverages"
-    BABY_FOOD = "baby_food"
-    PET_FOOD = "pet_food"
-    OTHER = "other"
 
 
 class ExpirationStatus(str, enum.Enum):
@@ -133,8 +108,8 @@ class FoodItem(Base):  # pylint: disable=too-few-public-methods
     expiration_date: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, index=True
     )
-    category: Mapped[FoodCategory] = mapped_column(
-        Enum(FoodCategory), nullable=False, default=FoodCategory.OTHER
+    category: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="other"
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 

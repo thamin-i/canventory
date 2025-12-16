@@ -5,7 +5,7 @@ import secrets
 import string
 import typing as t
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_password_hash
@@ -134,6 +134,90 @@ async def create_admin_user(db: AsyncSession) -> bool:
     return True
 
 
+async def migrate_category_column(db: AsyncSession) -> bool:
+    """Migrate the category column from enum to varchar if needed.
+
+    This is a one-time migration for databases created before dynamic
+    categories were implemented. It converts the old PostgreSQL enum
+    type to a VARCHAR column.
+
+    Args:
+        db (AsyncSession): The database session.
+
+    Returns:
+        bool: True if migration was performed, False otherwise.
+    """
+    try:
+        # Check if the foodcategory enum type exists
+        result = await db.execute(
+            text(
+                "SELECT EXISTS ("
+                "SELECT 1 FROM pg_type WHERE typname = 'foodcategory'"
+                ")"
+            )
+        )
+        enum_exists = result.scalar()
+
+        if not enum_exists:
+            LOGGER.debug("No foodcategory enum found, skipping migration")
+            return False
+
+        # Check if food_items table exists
+        result = await db.execute(
+            text(
+                "SELECT EXISTS ("
+                "SELECT 1 FROM information_schema.tables "
+                "WHERE table_name = 'food_items'"
+                ")"
+            )
+        )
+        table_exists = result.scalar()
+
+        if not table_exists:
+            LOGGER.debug("food_items table not found, skipping migration")
+            return False
+
+        # Check if category column is still using the enum type
+        result = await db.execute(
+            text(
+                "SELECT data_type, udt_name FROM information_schema.columns "
+                "WHERE table_name = 'food_items' AND column_name = 'category'"
+            )
+        )
+        row = result.fetchone()
+
+        if row is None:
+            LOGGER.debug("category column not found, skipping migration")
+            return False
+
+        if row[1] != "foodcategory":
+            LOGGER.debug("category column already migrated to %s", row[1])
+            return False
+
+        LOGGER.info("Migrating category column from enum to varchar...")
+
+        # Alter the column type from enum to varchar
+        await db.execute(
+            text(
+                "ALTER TABLE food_items "
+                "ALTER COLUMN category TYPE VARCHAR(50) "
+                "USING category::text"
+            )
+        )
+
+        # Drop the old enum type
+        await db.execute(text("DROP TYPE IF EXISTS foodcategory"))
+
+        await db.commit()
+        LOGGER.info("Category column migration completed successfully")
+        return True
+
+    except Exception as exc:  # pylint: disable=broad-except
+        LOGGER.warning("Category migration check failed: %s", exc)
+        await db.rollback()
+        return False
+
+
 async def initialize_database(db: AsyncSession) -> None:
     """Initialize the database with default data.
 
@@ -144,6 +228,10 @@ async def initialize_database(db: AsyncSession) -> None:
         db (AsyncSession): The database session.
     """
     LOGGER.info("Running database initialization...")
+
+    migrated: bool = await migrate_category_column(db)
+    if migrated:
+        LOGGER.info("Database migration completed")
 
     categories_created: int = await seed_categories(db)
     if categories_created > 0:

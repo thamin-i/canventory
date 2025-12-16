@@ -8,6 +8,12 @@ from app.services.auth_service import (
     RegistrationDisabledError,
     UsernameExistsError,
 )
+from app.services.category_service import (
+    CategoryInUseError,
+    CategoryNotFoundError,
+    CategoryService,
+    CategoryValueExistsError,
+)
 from app.services.item_service import (
     ImageTooLargeError,
     InvalidImageError,
@@ -17,6 +23,10 @@ from app.services.item_service import (
 
 __all__ = [
     "AuthService",
+    "CategoryInUseError",
+    "CategoryNotFoundError",
+    "CategoryService",
+    "CategoryValueExistsError",
     "EmailExistsError",
     "ImageTooLargeError",
     "InvalidCredentialsError",

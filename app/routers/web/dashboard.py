@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_web_user
 from app.core.database import get_db
 from app.core.globals import TEMPLATES
-from app.core.models import FoodCategory, User
+from app.core.models import User
 from app.services.item_service import (
     CanventoryStats,
     ExpirationAlertSummary,
@@ -52,13 +52,9 @@ async def dashboard(  # pylint: disable=too-many-arguments,too-many-positional-a
 
     service: ItemService = ItemService(db)
 
-    category_filter: FoodCategory | None = (
-        FoodCategory(category) if category else None
-    )
-
     result: FoodItemListResponse = await service.list_items(
         name=search,
-        category=category_filter,
+        category=category,
         page=page,
         page_size=12,
         sort=sort,

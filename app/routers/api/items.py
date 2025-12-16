@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_active_user
 from app.core.database import get_db
-from app.core.models import ExpirationStatus, FoodCategory, User
+from app.core.models import ExpirationStatus, User
 from app.schemas.alert import ExpirationAlertSummary
 from app.schemas.food_item import (
     FoodItemCreate,
@@ -37,9 +37,7 @@ async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-
     name: str | None = Query(
         None, description="Filter by name (partial match)"
     ),
-    category: FoodCategory | None = Query(
-        None, description="Filter by category"
-    ),
+    category: str | None = Query(None, description="Filter by category value"),
     expiration_status: ExpirationStatus | None = Query(
         None, description="Filter by expiration status"
     ),
@@ -58,8 +56,8 @@ async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-
             The currently authenticated user.
         name (str | None):
             Filter by name (partial match).
-        category (FoodCategory | None):
-            Filter by category.
+        category (str | None):
+            Filter by category value.
         expiration_status (ExpirationStatus | None):
             Filter by expiration status.
         expiring_within_days (int | None):

@@ -45,7 +45,7 @@ async def get_expiring_items() -> t.Dict[str, t.Any]:
                 "id": item.id,
                 "name": item.name,
                 "quantity": item.quantity,
-                "category": item.category.value,
+                "category": item.category,
                 "expiration_date": item.expiration_date.isoformat(),
             }
 

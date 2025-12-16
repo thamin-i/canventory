@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import SETTINGS
 from app.core.database import ASYNC_SESSION_MAKER, close_db, init_db
+from app.core.globals import OPENAPI_TAGS
 from app.routers import api_router, web_router
 from app.services.expiration_checker import check_expiring_items_task
 from app.services.init_service import initialize_database
@@ -68,12 +69,13 @@ async def lifespan(_: FastAPI) -> t.AsyncGenerator[None, None]:
 
 APPLICATION: FastAPI = FastAPI(
     title=SETTINGS.app_name,
-    description="Canventory application",
+    description="Canventory - Track and manage your food inventory",
     version=SETTINGS.app_version,
     lifespan=lifespan,
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    openapi_tags=OPENAPI_TAGS,
 )
 
 APPLICATION.add_middleware(
@@ -93,7 +95,7 @@ APPLICATION.include_router(api_router)
 APPLICATION.include_router(web_router)
 
 
-@APPLICATION.get("/", tags=["Health"])
+@APPLICATION.get("/", include_in_schema=False)
 async def root() -> RedirectResponse:
     """Root endpoint - redirect to web interface.
 

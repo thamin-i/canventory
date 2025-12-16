@@ -171,6 +171,12 @@ export function initDeleteConfirmations() {
           message:
             "This will permanently remove the user and all their data. This cannot be undone.",
         });
+      } else if (confirmType === "category-delete") {
+        confirmed = await Modal.confirmDelete(itemName, {
+          title: "Delete Category",
+          message:
+            "This category has no items and can be safely deleted. This action cannot be undone.",
+        });
       } else {
         confirmed = await Modal.confirm(this.dataset.confirm, {
           type: "warning",

@@ -14,7 +14,7 @@ from sqlalchemy import Select, UnaryExpression, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import SETTINGS
-from app.core.models import ExpirationStatus, FoodCategory, FoodItem
+from app.core.models import ExpirationStatus, FoodItem
 from app.schemas.alert import ExpirationAlert, ExpirationAlertSummary
 from app.schemas.food_item import FoodItemListResponse, FoodItemResponse
 from app.schemas.statistics import CanventoryStats
@@ -217,7 +217,7 @@ class ItemService:
     async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-arguments,too-many-locals,line-too-long  # noqa: E501
         self,
         name: str | None = None,
-        category: FoodCategory | None = None,
+        category: str | None = None,
         expiration_status: ExpirationStatus | None = None,
         expiring_within_days: int | None = None,
         page: int = 1,
@@ -229,7 +229,7 @@ class ItemService:
         Args:
             name (str | None):
                 Optional name filter.
-            category (FoodCategory | None):
+            category (str | None):
                 Optional category filter.
             expiration_status (ExpirationStatus | None):
                 Optional expiration status filter.
@@ -321,7 +321,7 @@ class ItemService:
         quantity: int,
         expiration_date: datetime,
         user_id: int,
-        category: FoodCategory = FoodCategory.OTHER,
+        category: str = "other",
         description: str | None = None,
         image_base64: str | None = None,
         image_bytes: bytes | None = None,
@@ -334,7 +334,7 @@ class ItemService:
             quantity (int): The quantity of the food item.
             expiration_date (datetime): The expiration date of the food item.
             user_id (int): The ID of the user creating the item.
-            category (FoodCategory): The category of the food item.
+            category (str): The category value of the food item.
             description (str | None): An optional description of the food item.
             image_base64 (str | None): An optional base64-encoded image string.
             image_bytes (bytes | None): An optional raw image data.
@@ -382,7 +382,7 @@ class ItemService:
         name: str | None = None,
         quantity: int | None = None,
         expiration_date: datetime | None = None,
-        category: FoodCategory | None = None,
+        category: str | None = None,
         description: str | None = None,
         image_base64: str | None = None,
         image_bytes: bytes | None = None,
@@ -400,8 +400,8 @@ class ItemService:
                 The new quantity of the food item.
             expiration_date (datetime | None):
                 The new expiration date.
-            category (FoodCategory | None):
-                The new category of the food item.
+            category (str | None):
+                The new category value of the food item.
             description (str | None):
                 The new description of the food item.
             image_base64 (str | None):
@@ -535,7 +535,7 @@ class ItemService:
         # Count by category
         items_by_category: t.Dict[str, int] = {}
         for item in items:
-            cat: str = item.category.value
+            cat: str = item.category
             items_by_category[cat] = items_by_category.get(cat, 0) + 1
 
         # Count by expiration status

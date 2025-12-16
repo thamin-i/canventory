@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.core.models import ExpirationStatus, FoodCategory
+from app.core.models import ExpirationStatus
 
 
 class ExpirationAlert(BaseModel):
@@ -17,7 +17,7 @@ class ExpirationAlert(BaseModel):
     days_until_expiration: int
     status: ExpirationStatus
     quantity: int
-    category: FoodCategory
+    category: str
 
 
 class ExpirationAlertSummary(BaseModel):

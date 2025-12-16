@@ -5,7 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.core.models import ExpirationStatus, FoodCategory
+from app.core.models import ExpirationStatus
 
 
 class FoodItemBase(BaseModel):
@@ -14,7 +14,7 @@ class FoodItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     quantity: int = Field(..., ge=1)
     expiration_date: datetime
-    category: FoodCategory = FoodCategory.OTHER
+    category: str = Field("other", max_length=50)
     description: str | None = Field(None, max_length=1000)
 
 
@@ -46,7 +46,7 @@ class FoodItemUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     quantity: int | None = Field(None, ge=0)
     expiration_date: datetime | None = None
-    category: FoodCategory | None = None
+    category: str | None = Field(None, max_length=50)
     description: str | None = Field(None, max_length=1000)
     image_base64: str | None = Field(
         None, description="Base64 encoded image data (optional)"

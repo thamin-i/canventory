@@ -3,6 +3,11 @@
 {% block title %}Admin - Canventory{% endblock %}
 {% block body_class %}app-page{% endblock %}
 
+{% block head %}
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', path='css/pages/admin.css') }}">
+{% endblock %}
+
 {% include "header.html" %}
 
 {% block content %}
@@ -67,6 +72,44 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Add New User -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>Add New User</h2>
+            <p class="settings-description">Manually create users</p>
+        </div>
+        <form method="post" action="/web/admin/users/create" class="admin-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-username">Username</label>
+                    <input type="text" id="new-username" name="username" required minlength="3" maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label for="new-email">Email</label>
+                    <input type="email" id="new-email" name="email" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="new-password">Password</label>
+                    <input type="password" id="new-password" name="password" required minlength="8">
+                </div>
+                <div class="form-group">
+                    <label for="new-is-admin">Role</label>
+                    <select id="new-is-admin" name="is_admin">
+                        <option value="0">Regular User</option>
+                        <option value="1">Administrator</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <span>Create User</span>
+                </button>
+            </div>
+        </form>
     </div>
 
     <!-- Users Table -->
@@ -162,43 +205,190 @@
         </div>
     </div>
 
-    <!-- Add New User -->
+    <!-- Add New Category -->
     <div class="admin-card">
         <div class="admin-card-header">
-            <h2>Add New User</h2>
-            <p class="settings-description">Manually create users (bypasses registration setting)</p>
+            <h2>Add New Category</h2>
+            <p class="settings-description">Create a new food category (will be added at the end)</p>
         </div>
-        <form method="post" action="/web/admin/users/create" class="admin-form">
+        <form method="post" action="/web/admin/categories/create" class="admin-form">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="new-username">Username</label>
-                    <input type="text" id="new-username" name="username" required minlength="3" maxlength="50">
+                    <label for="cat-icon">Icon (emoji)</label>
+                    <div class="emoji-input-wrapper">
+                        <input type="text" id="cat-icon" name="icon" required maxlength="10" placeholder="🍽️"
+                            class="icon-input" readonly>
+                        <button type="button" class="emoji-picker-toggle" data-target="cat-icon" title="Choose emoji">
+                            😀
+                        </button>
+                        <div class="emoji-picker-container" id="emoji-picker-cat-icon">
+                            <emoji-picker></emoji-picker>
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="new-email">Email</label>
-                    <input type="email" id="new-email" name="email" required>
+                    <label for="cat-label">Label</label>
+                    <input type="text" id="cat-label" name="label" required maxlength="100"
+                        placeholder="e.g., Canned Goods">
                 </div>
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="new-password">Password</label>
-                    <input type="password" id="new-password" name="password" required minlength="8">
-                </div>
-                <div class="form-group">
-                    <label for="new-is-admin">Role</label>
-                    <select id="new-is-admin" name="is_admin">
-                        <option value="0">Regular User</option>
-                        <option value="1">Administrator</option>
-                    </select>
-                </div>
+            <div class="form-group">
+                <label for="cat-value">Value (lowercase, underscores)</label>
+                <input type="text" id="cat-value" name="value" required maxlength="50" pattern="[a-z_]+"
+                    placeholder="e.g., canned_goods" title="Only lowercase letters and underscores allowed">
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
-                    <span>Create User</span>
+                    <span>Create Category</span>
                 </button>
             </div>
         </form>
     </div>
+
+    <!-- Category Management -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>Category Management</h2>
+            <p class="settings-description">Manage food item categories</p>
+        </div>
+        <div class="table-responsive">
+            <table class="admin-table" id="categories-table">
+                <thead>
+                    <tr>
+                        <th class="drag-col"></th>
+                        <th>Icon</th>
+                        <th>Label</th>
+                        <th>Value</th>
+                        <th>Items</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="categories-tbody">
+                    {% for cat in categories %}
+                    <tr draggable="true" data-category-id="{{ cat.id }}">
+                        <td class="drag-handle" title="Drag to reorder">
+                            <span class="drag-icon">⋮⋮</span>
+                        </td>
+                        <td>
+                            <span class="category-icon">{{ cat.icon }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ cat.label }}</strong>
+                        </td>
+                        <td>
+                            <code class="category-value">{{ cat.value }}</code>
+                        </td>
+                        <td>
+                            <span
+                                class="item-count-badge {% if category_item_counts.get(cat.value, 0) > 0 %}has-items{% endif %}">
+                                {{ category_item_counts.get(cat.value, 0) }}
+                            </span>
+                        </td>
+                        <td class="actions-cell">
+                            <div class="action-buttons">
+                                <button type="button" class="btn btn-sm btn-ghost" title="Edit Category"
+                                    onclick="openEditCategoryModal({{ cat.id }}, '{{ cat.label }}', '{{ cat.icon }}')">
+                                    ✏️
+                                </button>
+                                {% if category_item_counts.get(cat.value, 0) == 0 %}
+                                <form method="post" action="/web/admin/categories/{{ cat.id }}/delete"
+                                    class="inline-form" data-confirm="delete" data-confirm-item="{{ cat.label }}"
+                                    data-confirm-type="category-delete">
+                                    <button type="submit" class="btn btn-sm btn-ghost btn-danger-text"
+                                        title="Delete Category">
+                                        🗑️
+                                    </button>
+                                </form>
+                                {% else %}
+                                <button type="button" class="btn btn-sm btn-ghost btn-danger-text"
+                                    title="Delete Category"
+                                    onclick="openDeleteCategoryModal({{ cat.id }}, '{{ cat.label }}', {{ category_item_counts.get(cat.value, 0) }})">
+                                    🗑️
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </main>
 
+<!-- Edit Category Modal -->
+<div id="edit-category-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeEditCategoryModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Category</h3>
+            <button type="button" class="modal-close" onclick="closeEditCategoryModal()">&times;</button>
+        </div>
+        <form id="edit-category-form" method="post" action="">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-cat-icon">Icon (emoji)</label>
+                    <div class="emoji-input-wrapper">
+                        <input type="text" id="edit-cat-icon" name="icon" required maxlength="10" class="icon-input"
+                            readonly>
+                        <button type="button" class="emoji-picker-toggle" data-target="edit-cat-icon"
+                            title="Choose emoji">
+                            😀
+                        </button>
+                        <div class="emoji-picker-container" id="emoji-picker-edit-cat-icon">
+                            <emoji-picker></emoji-picker>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-cat-label">Label</label>
+                    <input type="text" id="edit-cat-label" name="label" required maxlength="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeEditCategoryModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div id="delete-category-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeDeleteCategoryModal()"></div>
+    <div class="modal-content modal-container">
+        <div class="modal-header">
+            <div class="modal-icon danger">🗑️</div>
+            <div class="modal-header-text">
+                <h3 class="modal-title">Delete Category</h3>
+                <p class="modal-subtitle" id="delete-cat-name"></p>
+            </div>
+        </div>
+        <form id="delete-category-form" method="post" action="">
+            <div class="modal-body">
+                <div class="delete-warning-box">
+                    <p class="delete-item-count">
+                        ⚠️ This category is used by <strong id="delete-item-count">0</strong> item(s).
+                    </p>
+                </div>
+                <div class="form-group" style="margin-top: var(--space-md);">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="force" value="1" id="delete-force-checkbox">
+                        <span id="force-delete-label">Force delete and reassign items to "Other"</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteCategoryModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="delete-cat-submit" disabled>Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module" src="{{ url_for('static', path='js/pages/admin.js') }}"></script>
 {% endblock %}

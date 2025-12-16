@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_web_user
 from app.core.database import get_db
 from app.core.globals import TEMPLATES
-from app.core.models import FoodCategory, User
+from app.core.models import User
 from app.services import ImageTooLargeError, ItemNotFoundError, ItemService
 from app.services.item_service import FoodItemResponse
 from app.utils.categories import get_categories
@@ -144,7 +144,7 @@ async def create_item(  # pylint: disable=too-many-arguments,too-many-positional
             quantity=quantity,
             expiration_date=exp_date,
             user_id=user.id,
-            category=FoodCategory(category),
+            category=category,
             description=description,
             image_bytes=image_bytes,
             image_mime_type=image_mime,
@@ -200,7 +200,6 @@ async def edit_item_page(
 
     item_dict: dict[str, t.Any] = item_response.model_dump()
     item_dict["expiration_date"] = item_response.expiration_date.isoformat()
-    item_dict["category"] = item_response.category.value
 
     return TEMPLATES.TemplateResponse(
         "pages/item_form.html",
@@ -271,7 +270,7 @@ async def update_item(  # pylint: disable=too-many-arguments,too-many-positional
             name=name,
             quantity=quantity,
             expiration_date=exp_date,
-            category=FoodCategory(category),
+            category=category,
             description=description,
             image_bytes=image_bytes,
             image_mime_type=image_mime,

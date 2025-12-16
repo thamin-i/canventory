@@ -1,0 +1,238 @@
+/* ============================================
+   Canventory - Admin Page Styles
+   Emoji Picker and Category Management
+   ============================================ */
+
+/* Emoji Picker Wrapper */
+.emoji-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.emoji-input-wrapper .icon-input {
+    flex: 1;
+}
+
+.emoji-picker-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: var(--color-sand);
+    border: 2px solid var(--color-wheat);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 1.25rem;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.emoji-picker-toggle:hover {
+    background: var(--color-wheat);
+    border-color: var(--color-primary);
+}
+
+.emoji-picker-toggle:active {
+    transform: scale(0.95);
+}
+
+.emoji-picker-container {
+    position: absolute;
+    top: calc(100% + var(--space-sm));
+    left: 0;
+    z-index: 1000;
+    display: none;
+    animation: fadeSlideIn 0.2s ease;
+}
+
+.emoji-picker-container.active {
+    display: block;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Style the emoji-picker-element to match Canventory design */
+emoji-picker {
+    --emoji-size: 1.5rem;
+    --emoji-padding: 0.4rem;
+    --border-radius: var(--radius-md);
+    --border-color: var(--color-wheat);
+    --background: var(--color-warm-white);
+    --input-border-color: var(--color-wheat);
+    --input-font-color: var(--color-text);
+    --input-placeholder-color: var(--color-text-muted);
+    --outline-color: var(--color-primary);
+    --category-font-color: var(--color-text-muted);
+    --indicator-color: var(--color-primary);
+    --button-active-background: var(--color-sand);
+    --button-hover-background: var(--color-cream);
+    --num-columns: 8;
+    width: 320px;
+    height: 350px;
+    border: 2px solid var(--color-wheat);
+    box-shadow: var(--shadow-lg);
+}
+
+[data-theme="dark"] emoji-picker {
+    --background: var(--color-warm-white);
+    --border-color: var(--color-wheat);
+    --input-border-color: var(--color-wheat);
+    --input-font-color: var(--color-text);
+    --input-placeholder-color: var(--color-text-muted);
+    --category-font-color: var(--color-text-muted);
+    --button-active-background: var(--color-sand);
+    --button-hover-background: var(--color-sand);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .emoji-picker-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 3001;
+    }
+
+    .emoji-picker-container.active {
+        animation: fadeScaleIn 0.2s ease;
+    }
+
+    @keyframes fadeScaleIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+
+    .emoji-picker-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(45, 42, 38, 0.5);
+        z-index: 3000;
+        display: none;
+    }
+
+    .emoji-picker-backdrop.active {
+        display: block;
+    }
+
+    [data-theme="dark"] .emoji-picker-backdrop {
+        background: rgba(0, 0, 0, 0.6);
+    }
+}
+
+/* Drag and Drop Styles for Category Reordering */
+.drag-col {
+    width: 40px;
+}
+
+.drag-handle {
+    cursor: grab;
+    user-select: none;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-icon {
+    font-size: 1rem;
+    color: var(--color-text-muted);
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+}
+
+tr:hover .drag-icon {
+    opacity: 1;
+}
+
+tr.dragging {
+    opacity: 0.5;
+    background: var(--color-sand);
+}
+
+tr.drag-over-top {
+    border-top: 2px solid var(--color-primary);
+}
+
+tr.drag-over-bottom {
+    border-bottom: 2px solid var(--color-primary);
+}
+
+.category-icon {
+    font-size: 1.5rem;
+}
+
+.category-value {
+    font-family: monospace;
+    font-size: 0.8125rem;
+    background: var(--color-sand);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+}
+
+.item-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 var(--space-xs);
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--color-sand);
+    color: var(--color-text-muted);
+    border-radius: var(--radius-full);
+}
+
+.item-count-badge.has-items {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+
+/* Delete Warning Box */
+.delete-warning-box {
+    padding: var(--space-md);
+    background: var(--color-warning-bg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-warning);
+}
+
+.delete-item-count {
+    margin: 0;
+    font-size: 0.9375rem;
+    color: var(--color-warning);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    cursor: pointer;
+    font-size: 0.9375rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}

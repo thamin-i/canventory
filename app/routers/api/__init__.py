@@ -2,14 +2,15 @@
 
 from fastapi import APIRouter
 
-from app.routers.api import auth, items, notifications
+from app.routers.api import auth, categories, items, notifications
 
 # Create main API router with /api prefix
-ROUTER = APIRouter(prefix="/api", tags=["API"])
+ROUTER = APIRouter(prefix="/api")
 
 # Include all sub-routers
 ROUTER.include_router(auth.ROUTER)
+ROUTER.include_router(categories.ROUTER)
 ROUTER.include_router(items.ROUTER)
 ROUTER.include_router(notifications.ROUTER)
 
-__all__ = ["ROUTER", "auth", "items", "notifications"]
+__all__ = ["ROUTER", "auth", "categories", "items", "notifications"]
