@@ -50,6 +50,10 @@ async def dashboard(  # pylint: disable=too-many-arguments,too-many-positional-a
     if user is None:
         return RedirectResponse(url="/web/login", status_code=303)
 
+    search = search or None
+    category = category or None
+    status = status or None
+
     service: ItemService = ItemService(db)
 
     result: FoodItemListResponse = await service.list_items(

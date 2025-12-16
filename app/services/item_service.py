@@ -289,9 +289,9 @@ class ItemService:
             case "created_asc":
                 order_clause = FoodItem.created_at.asc()
 
-        # Apply pagination
+        # Apply sorting and pagination
         offset: int = (page - 1) * page_size
-        query = query.offset(offset).limit(page_size).order_by(order_clause)
+        query = query.order_by(order_clause).offset(offset).limit(page_size)
 
         items: t.Sequence[FoodItem] = (
             (await self.db.execute(query)).scalars().all()
