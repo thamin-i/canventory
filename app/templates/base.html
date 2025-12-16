@@ -20,7 +20,10 @@
         rel="stylesheet">
 
     <!-- Styles -->
+    <!-- Prevent Flash of Unstyled Content (FOUC) - body hidden until CSS loads -->
+    <style>body { opacity: 0; }</style>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <noscript><style>body { opacity: 1 !important; }</style></noscript>
     {% block head %}{% endblock %}
 
     <script>

@@ -24,6 +24,9 @@ body {
   color: var(--color-text);
   background: var(--color-cream);
   min-height: 100vh;
+  /* Reveal body once CSS is fully loaded (prevents FOUC) */
+  opacity: 1 !important;
+  transition: opacity 0.15s ease;
 }
 
 a {
