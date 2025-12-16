@@ -9,7 +9,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import SETTINGS
@@ -113,3 +113,13 @@ async def health_check() -> t.Dict[str, str]:
         t.Dict[str, str]: A dictionary indicating the health status.
     """
     return {"status": "healthy"}
+
+
+@APPLICATION.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> FileResponse:
+    """Serve favicon from root path for browser compatibility.
+
+    Returns:
+        FileResponse: The favicon file response.
+    """
+    return FileResponse(STATIC_DIR / "icons/icon.svg")
