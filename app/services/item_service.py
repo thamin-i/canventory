@@ -19,6 +19,7 @@ from app.schemas.alert import ExpirationAlert, ExpirationAlertSummary
 from app.schemas.food_item import FoodItemListResponse, FoodItemResponse
 from app.schemas.statistics import CanventoryStats
 from app.utils.dates import calculate_days_until_expiration
+from app.utils.images import delete_thumbnail
 
 
 class ItemNotFoundError(Exception):
@@ -165,14 +166,20 @@ class ItemService:
         return None, image_data, effective_mime
 
     @staticmethod
-    def delete_image_file(image_path: str | None) -> None:
+    def delete_image_file(
+        image_path: str | None, item_id: int | None = None
+    ) -> None:
         """Delete image file from filesystem.
 
         Args:
             image_path (str | None): The path to the image file.
+            item_id (int | None): The item ID (used to delete thumbnail).
         """
         if image_path and os.path.exists(image_path):
             os.remove(image_path)
+        # Also delete the thumbnail if item_id is provided
+        if item_id is not None:
+            delete_thumbnail(item_id, image_path)
 
     async def get_item(self, item_id: int) -> FoodItemResponse:
         """Get a specific food item by ID.
@@ -432,7 +439,7 @@ class ItemService:
 
         # Handle image removal
         if remove_image:
-            self.delete_image_file(item.image_path)
+            self.delete_image_file(item.image_path, item.id)
             item.image_path = None
             item.image_data = None
             item.image_mime_type = None
@@ -440,7 +447,7 @@ class ItemService:
         # Handle new image
         if image_base64:
             # Remove old image first
-            self.delete_image_file(item.image_path)
+            self.delete_image_file(item.image_path, item.id)
             image_path, image_data, mime_type = await self.save_image_from_b64(
                 image_base64, item.id
             )
@@ -448,7 +455,7 @@ class ItemService:
             item.image_data = image_data
             item.image_mime_type = mime_type
         elif image_bytes:
-            self.delete_image_file(item.image_path)
+            self.delete_image_file(item.image_path, item.id)
             image_path, image_data, mime_type = self._process_image_data(
                 image_bytes, item.id, image_mime_type
             )
@@ -469,7 +476,7 @@ class ItemService:
         """
         item: FoodItem = await self.get_item_model(item_id)
 
-        self.delete_image_file(item.image_path)
+        self.delete_image_file(item.image_path, item.id)
 
         await self.db.delete(item)
 

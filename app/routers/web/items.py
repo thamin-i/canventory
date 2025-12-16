@@ -320,6 +320,7 @@ async def get_item_image(
     request: Request,
     item_id: int,
     db: t.Annotated[AsyncSession, Depends(get_db)],
+    thumbnail: bool = False,
 ) -> FileResponse | Response:
     """Get the image for a food item.
 
@@ -327,6 +328,7 @@ async def get_item_image(
         request (Request): The incoming request.
         item_id (int): The ID of the item whose image to retrieve.
         db (AsyncSession): The database session.
+        thumbnail (bool): Whether to return a smaller thumbnail version.
 
     Returns:
         FileResponse | Response:
@@ -336,4 +338,4 @@ async def get_item_image(
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    return await get_food_item_image(item_id, db)
+    return await get_food_item_image(item_id, db, thumbnail=thumbnail)

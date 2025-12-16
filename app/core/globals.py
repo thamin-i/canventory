@@ -1,6 +1,10 @@
 """Global variables."""
 
+from pathlib import Path
+
 from fastapi.templating import Jinja2Templates
+
+from app.core.config import SETTINGS
 
 TEMPLATES = Jinja2Templates(directory="app/templates")
 
@@ -28,3 +32,8 @@ OPENAPI_TAGS = [
         "description": "Application health check endpoints",
     },
 ]
+
+THUMBNAIL_SIZE: tuple[int, int] = (300, 300)
+THUMBNAIL_QUALITY: int = 90
+THUMBNAIL_DIR: Path = SETTINGS.image_upload_dir / "thumbnails"
+THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)

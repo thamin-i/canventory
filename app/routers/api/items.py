@@ -152,6 +152,7 @@ async def get_item_image(
     current_user: t.Annotated[  # pylint: disable=unused-argument
         User, Depends(get_current_active_user)
     ],
+    thumbnail: bool = False,
 ) -> FileResponse | Response:
     """Get the image for a food item.
 
@@ -159,11 +160,12 @@ async def get_item_image(
         item_id (int): The ID of the food item.
         db (AsyncSession): The database session.
         current_user (User): The currently authenticated user.
+        thumbnail (bool): Whether to return a smaller thumbnail version.
 
     Returns:
         FileResponse | Response: The image file response or empty response.
     """
-    return await get_food_item_image(item_id, db)
+    return await get_food_item_image(item_id, db, thumbnail=thumbnail)
 
 
 @ROUTER.post(
