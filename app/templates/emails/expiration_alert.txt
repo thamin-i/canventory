@@ -28,7 +28,7 @@ Hi {{ username }},
 
 {% endif %}
 
-View your dashboard: /web/dashboard
+View your dashboard: {{ app_url }}/web/dashboard
 
 ---
 You're receiving this because you have email notifications enabled.

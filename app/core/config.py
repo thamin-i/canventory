@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "Canventory"
     app_version: str = "1.0.0"
+    app_url: str = "http://localhost:8000"
     debug: bool = False
 
     # Database

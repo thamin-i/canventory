@@ -118,6 +118,7 @@ def format_expiration_html_email(
         warning=expiring_data.get("warning", []),
         critical_days=SETTINGS.expiration_critical_days,
         warning_days=SETTINGS.expiration_warning_days,
+        app_url=SETTINGS.app_url,
     )
 
 
@@ -148,6 +149,7 @@ def format_expiration_text_email(
         warning=expiring_data.get("warning", []),
         critical_days=SETTINGS.expiration_critical_days,
         warning_days=SETTINGS.expiration_warning_days,
+        app_url=SETTINGS.app_url,
     )
 
 
@@ -348,10 +350,14 @@ async def send_test_email(user: User) -> bool:
 
     subject: str = "✅ [Canventory] Test Email"
     text_body: str = render_template(
-        "emails/test_email.txt", username=user.username
+        "emails/test_email.txt",
+        username=user.username,
+        app_url=SETTINGS.app_url,
     )
     html_body: str = render_template(
-        "emails/test_email.html", username=user.username
+        "emails/test_email.html",
+        username=user.username,
+        app_url=SETTINGS.app_url,
     )
 
     return await send_email(

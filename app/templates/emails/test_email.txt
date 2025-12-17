@@ -6,3 +6,4 @@ If you received this message, your email notifications are working correctly!
 
 ---
 Canventory - Food Inventory Management
+Manage your settings: {{ app_url }}/web/settings
