@@ -434,8 +434,12 @@
   border-top: 1px solid var(--color-wheat);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .admin-container {
+    padding: var(--space-md);
+  }
+
+  .admin-form {
     padding: var(--space-md);
   }
 

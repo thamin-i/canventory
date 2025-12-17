@@ -205,8 +205,12 @@
   }
 
   .header-dropdown {
-    min-width: 200px;
-    left: 0;
+    position: fixed;
+    top: 60px;
+    left: var(--space-md);
+    right: var(--space-md);
+    min-width: unset;
+    width: auto;
   }
 }
 
@@ -431,14 +435,43 @@
 @media (max-width: 768px) {
   .toolbar {
     padding: var(--space-md);
+    flex-direction: column;
+  }
+
+  .search-box {
+    width: 100%;
+    min-width: unset;
   }
 
   .filter-group {
     width: 100%;
   }
 
+  .filter-group form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+    width: 100%;
+  }
+
+  /* Hidden inputs should not affect grid layout */
+  .filter-group form input[type="hidden"] {
+    display: none;
+  }
+
   .filter-select {
-    flex: 1;
+    width: 100%;
+  }
+
+  /* Make the sort select (last one) span full width on its own row */
+  .filter-group form .filter-select:last-of-type {
+    grid-column: 1 / -1;
+  }
+
+  /* Add Item button full width on mobile */
+  .toolbar > .btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 
