@@ -64,6 +64,14 @@
                 <option value="{{ cat.value }}" {% if category==cat.value %}selected{% endif %}>{{ cat.label }}</option>
                 {% endfor %}
             </select>
+            <select name="location" class="filter-select" onchange="this.form.submit()">
+                <option value="">📍 All Locations</option>
+                <option value="none" {% if location=='none' %}selected{% endif %}>📍 No Location</option>
+                {% for loc in locations %}
+                <option value="{{ loc.id }}" {% if location|string==loc.id|string %}selected{% endif %}>📍 {{ loc.name
+                    }}</option>
+                {% endfor %}
+            </select>
             <select name="sort" class="filter-select" onchange="this.form.submit()">
                 <option value="expiration_asc" {% if sort=='expiration_asc' %}selected{% endif %}>📅 Expires Soon First
                 </option>
@@ -119,6 +127,9 @@
                 </div>
                 <div class="item-category">{{ category_icons.get(item.category, '📦') }} {{ item.category | replace('_',
                     ' ') | title }}</div>
+                {% if item.location_name %}
+                <div class="item-location">📍 {{ item.location_name }}</div>
+                {% endif %}
                 <div class="item-expiration {{ item.expiration_status if item.expiration_status != 'fresh' else '' }}">
                     <span>📅</span>
                     <span>
@@ -171,7 +182,7 @@
 {% if total_pages > 1 %}
 <section class="pagination">
     {% if page > 1 %}
-    <a href="/web/dashboard?page={{ page - 1 }}&search={{ search or '' }}&category={{ category or '' }}&status={{ status or '' }}&sort={{ sort or 'expiration_asc' }}"
+    <a href="/web/dashboard?page={{ page - 1 }}&search={{ search or '' }}&category={{ category or '' }}&location={{ location or '' }}&status={{ status or '' }}&sort={{ sort or 'expiration_asc' }}"
         class="btn btn-ghost">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M15 18l-6-6 6-6" />
@@ -185,7 +196,7 @@
     <span class="page-info">Page {{ page }} of {{ total_pages }}</span>
 
     {% if page < total_pages %} <a
-        href="/web/dashboard?page={{ page + 1 }}&search={{ search or '' }}&category={{ category or '' }}&status={{ status or '' }}&sort={{ sort or 'expiration_asc' }}"
+        href="/web/dashboard?page={{ page + 1 }}&search={{ search or '' }}&category={{ category or '' }}&location={{ location or '' }}&status={{ status or '' }}&sort={{ sort or 'expiration_asc' }}"
         class="btn btn-ghost">
         Next
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

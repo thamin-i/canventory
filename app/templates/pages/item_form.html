@@ -46,6 +46,155 @@
         </div>
 
         <div class="form-group">
+            <label for="location">Storage Location</label>
+            <div class="autocomplete-wrapper">
+                <input type="text" id="location" name="location" placeholder="Type to search or create new..."
+                    value="{{ item.location_name if item and item.location_name else '' }}" maxlength="100"
+                    autocomplete="off">
+                <div class="autocomplete-dropdown" id="location-dropdown"></div>
+            </div>
+            <small class="form-hint">📍 Where is this item stored? (e.g., Fridge, Kitchen Closet, Pantry)</small>
+        </div>
+
+        <script>
+            (function () {
+                const locations = {{ locations | tojson | safe
+            }};
+            const input = document.getElementById('location');
+            const dropdown = document.getElementById('location-dropdown');
+            let selectedIndex = -1;
+
+            function showSuggestions(filter) {
+                const value = filter.toLowerCase().trim();
+                dropdown.innerHTML = '';
+                selectedIndex = -1;
+
+                if (!value) {
+                    // Show all locations when empty and focused
+                    if (locations.length === 0) {
+                        dropdown.style.display = 'none';
+                        return;
+                    }
+                }
+
+                const filtered = value
+                    ? locations.filter(loc => loc.name.toLowerCase().includes(value))
+                    : locations;
+
+                if (filtered.length === 0 && value) {
+                    // Show "create new" option
+                    const createItem = document.createElement('div');
+                    createItem.className = 'autocomplete-item autocomplete-create';
+                    createItem.innerHTML = '<span class="autocomplete-icon">✨</span> Create "<strong>' + escapeHtml(filter) + '</strong>"';
+                    createItem.addEventListener('click', () => {
+                        input.value = filter;
+                        dropdown.style.display = 'none';
+                    });
+                    dropdown.appendChild(createItem);
+                    dropdown.style.display = 'block';
+                    return;
+                }
+
+                if (filtered.length === 0) {
+                    dropdown.style.display = 'none';
+                    return;
+                }
+
+                filtered.forEach((loc, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.dataset.index = index;
+
+                    // Highlight matching text
+                    let displayName = escapeHtml(loc.name);
+
+                    if (value) {
+                        const regex = new RegExp('(' + escapeRegex(value) + ')', 'gi');
+                        displayName = displayName.replace(regex, '<mark>$1</mark>');
+                    }
+
+                    item.innerHTML = '<span class="autocomplete-icon">📍</span><span>' + displayName + '</span>';
+                    item.addEventListener('click', () => {
+                        input.value = loc.name;
+                        dropdown.style.display = 'none';
+                    });
+                    dropdown.appendChild(item);
+                });
+
+                // Show "create new" option if input doesn't exactly match
+                if (value && !filtered.some(loc => loc.name.toLowerCase() === value)) {
+                    const createItem = document.createElement('div');
+                    createItem.className = 'autocomplete-item autocomplete-create';
+                    createItem.dataset.index = filtered.length;
+                    createItem.innerHTML = '<span class="autocomplete-icon">✨</span> Create "<strong>' + escapeHtml(filter) + '</strong>"';
+                    createItem.addEventListener('click', () => {
+                        input.value = filter;
+                        dropdown.style.display = 'none';
+                    });
+                    dropdown.appendChild(createItem);
+                }
+
+                dropdown.style.display = 'block';
+            }
+
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            function escapeRegex(string) {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+
+            function updateSelection() {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                items.forEach((item, index) => {
+                    item.classList.toggle('selected', index === selectedIndex);
+                });
+                if (selectedIndex >= 0 && items[selectedIndex]) {
+                    items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            input.addEventListener('input', (e) => {
+                showSuggestions(e.target.value);
+            });
+
+            input.addEventListener('focus', () => {
+                showSuggestions(input.value);
+            });
+
+            input.addEventListener('keydown', (e) => {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateSelection();
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    items[selectedIndex].click();
+                } else if (e.key === 'Escape') {
+                    dropdown.style.display = 'none';
+                    selectedIndex = -1;
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }) ();
+        </script>
+
+        <div class="form-group">
             <label for="description">Description</label>
             <textarea id="description" name="description" rows="3"
                 maxlength="1000">{{ item.description if item and item.description else (prefill.description if prefill else '') }}</textarea>

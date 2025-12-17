@@ -56,6 +56,7 @@ def _generate_thumbnail(image_data: bytes) -> bytes:
 async def get_food_item_image(
     item_id: int,
     db: AsyncSession,
+    home_id: int | None = None,
     thumbnail: bool = False,
 ) -> FileResponse | Response:
     """Retrieve the image or thumbnail for a food item.
@@ -65,15 +66,19 @@ async def get_food_item_image(
             The ID of the food item.
         db (AsyncSession):
             The database session.
+        home_id (int | None):
+            The home ID to scope the query (optional, for access control).
         thumbnail (bool, optional):
             Whether to return a thumbnail version. Defaults to False.
 
     Returns:
         FileResponse | Response: The image response.
     """
-    item: FoodItem | None = (
-        await db.execute(select(FoodItem).where(FoodItem.id == item_id))
-    ).scalar_one_or_none()
+    query = select(FoodItem).where(FoodItem.id == item_id)
+    if home_id is not None:
+        query = query.where(FoodItem.home_id == home_id)
+
+    item: FoodItem | None = (await db.execute(query)).scalar_one_or_none()
 
     if item is None:
         raise HTTPException(

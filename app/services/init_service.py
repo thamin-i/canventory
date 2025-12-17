@@ -5,35 +5,13 @@ import secrets
 import string
 import typing as t
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_password_hash
-from app.core.models import Category, User
+from app.core.models import User
 
 LOGGER: logging.Logger = logging.getLogger(__name__)
-
-DEFAULT_CATEGORIES: t.List[t.Dict[str, str]] = [
-    {"value": "canned_vegetables", "label": "Canned Vegetables", "icon": "🥕"},
-    {"value": "canned_fruits", "label": "Canned Fruits", "icon": "🍑"},
-    {"value": "canned_meats", "label": "Canned Meats", "icon": "🥩"},
-    {"value": "canned_soups", "label": "Canned Soups", "icon": "🍲"},
-    {"value": "grains", "label": "Grains", "icon": "🌾"},
-    {"value": "pasta", "label": "Pasta", "icon": "🍝"},
-    {"value": "rice", "label": "Rice", "icon": "🍚"},
-    {"value": "cereals", "label": "Cereals", "icon": "🥣"},
-    {"value": "beans", "label": "Beans", "icon": "🫘"},
-    {"value": "nuts", "label": "Nuts", "icon": "🥜"},
-    {"value": "dried_fruits", "label": "Dried Fruits", "icon": "🍇"},
-    {"value": "condiments", "label": "Condiments", "icon": "🧂"},
-    {"value": "oils", "label": "Oils", "icon": "🫒"},
-    {"value": "baking", "label": "Baking", "icon": "🧁"},
-    {"value": "snacks", "label": "Snacks", "icon": "🍿"},
-    {"value": "beverages", "label": "Beverages", "icon": "🧃"},
-    {"value": "baby_food", "label": "Baby Food", "icon": "🍼"},
-    {"value": "pet_food", "label": "Pet Food", "icon": "🐕"},
-    {"value": "other", "label": "Other", "icon": "📦"},
-]
 
 
 def generate_secure_password(length: int = 16) -> str:
@@ -56,39 +34,6 @@ def generate_secure_password(length: int = 16) -> str:
     password_list: t.List[str] = list(password)
     secrets.SystemRandom().shuffle(password_list)
     return "".join(password_list)
-
-
-async def seed_categories(db: AsyncSession) -> int:
-    """Seed the database with default categories if none exist.
-
-    Args:
-        db (AsyncSession): The database session.
-
-    Returns:
-        int: Number of categories created.
-    """
-    existing: Category | None = (
-        (await db.execute(select(Category))).scalars().first()
-    )
-    if existing is not None:
-        LOGGER.debug("Categories already exist, skipping seed")
-        return 0
-
-    LOGGER.info(
-        "Seeding database with %d default categories", len(DEFAULT_CATEGORIES)
-    )
-    for idx, cat_data in enumerate(DEFAULT_CATEGORIES):
-        category: Category = Category(
-            value=cat_data["value"],
-            label=cat_data["label"],
-            icon=cat_data["icon"],
-            sort_order=idx,
-        )
-        db.add(category)
-
-    await db.flush()
-    LOGGER.info("Successfully seeded %d categories", len(DEFAULT_CATEGORIES))
-    return len(DEFAULT_CATEGORIES)
 
 
 async def create_admin_user(db: AsyncSession) -> bool:
@@ -134,108 +79,19 @@ async def create_admin_user(db: AsyncSession) -> bool:
     return True
 
 
-async def migrate_category_column(db: AsyncSession) -> bool:
-    """Migrate the category column from enum to varchar if needed.
-
-    This is a one-time migration for databases created before dynamic
-    categories were implemented. It converts the old PostgreSQL enum
-    type to a VARCHAR column.
-
-    Args:
-        db (AsyncSession): The database session.
-
-    Returns:
-        bool: True if migration was performed, False otherwise.
-    """
-    try:
-        # Check if the foodcategory enum type exists
-        result = await db.execute(
-            text(
-                "SELECT EXISTS ("
-                "SELECT 1 FROM pg_type WHERE typname = 'foodcategory'"
-                ")"
-            )
-        )
-        enum_exists = result.scalar()
-
-        if not enum_exists:
-            LOGGER.debug("No foodcategory enum found, skipping migration")
-            return False
-
-        # Check if food_items table exists
-        result = await db.execute(
-            text(
-                "SELECT EXISTS ("
-                "SELECT 1 FROM information_schema.tables "
-                "WHERE table_name = 'food_items'"
-                ")"
-            )
-        )
-        table_exists = result.scalar()
-
-        if not table_exists:
-            LOGGER.debug("food_items table not found, skipping migration")
-            return False
-
-        # Check if category column is still using the enum type
-        result = await db.execute(
-            text(
-                "SELECT data_type, udt_name FROM information_schema.columns "
-                "WHERE table_name = 'food_items' AND column_name = 'category'"
-            )
-        )
-        row = result.fetchone()
-
-        if row is None:
-            LOGGER.debug("category column not found, skipping migration")
-            return False
-
-        if row[1] != "foodcategory":
-            LOGGER.debug("category column already migrated to %s", row[1])
-            return False
-
-        LOGGER.info("Migrating category column from enum to varchar...")
-
-        # Alter the column type from enum to varchar
-        await db.execute(
-            text(
-                "ALTER TABLE food_items "
-                "ALTER COLUMN category TYPE VARCHAR(50) "
-                "USING category::text"
-            )
-        )
-
-        # Drop the old enum type
-        await db.execute(text("DROP TYPE IF EXISTS foodcategory"))
-
-        await db.commit()
-        LOGGER.info("Category column migration completed successfully")
-        return True
-
-    except Exception as exc:  # pylint: disable=broad-except
-        LOGGER.warning("Category migration check failed: %s", exc)
-        await db.rollback()
-        return False
-
-
 async def initialize_database(db: AsyncSession) -> None:
     """Initialize the database with default data.
 
     This function should be called at application startup to ensure
     the database has all required seed data.
 
+    Note: Categories are now created per-home when a home is created,
+    so we no longer seed global categories.
+
     Args:
         db (AsyncSession): The database session.
     """
     LOGGER.info("Running database initialization...")
-
-    migrated: bool = await migrate_category_column(db)
-    if migrated:
-        LOGGER.info("Database migration completed")
-
-    categories_created: int = await seed_categories(db)
-    if categories_created > 0:
-        LOGGER.info("Created %d categories", categories_created)
 
     admin_created: bool = await create_admin_user(db)
     if admin_created:

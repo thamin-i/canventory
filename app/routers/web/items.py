@@ -1,4 +1,4 @@
-"""Web item CRUD routes."""
+"""Web item CRUD routes (home-scoped)."""
 
 import typing as t
 from datetime import datetime, timedelta, timezone
@@ -23,11 +23,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_web_user
 from app.core.database import get_db
 from app.core.globals import TEMPLATES
-from app.core.models import User
-from app.services import ImageTooLargeError, ItemNotFoundError, ItemService
+from app.core.models import Home, StorageLocation, User
+from app.services import (
+    HomeService,
+    ImageTooLargeError,
+    ItemNotFoundError,
+    ItemService,
+)
 from app.services.item_service import FoodItemResponse
+from app.services.location_service import LocationService
 from app.utils.categories import get_categories
 from app.utils.images import get_food_item_image
+from app.utils.locations import get_locations
 
 ROUTER: APIRouter = APIRouter()
 
@@ -57,6 +64,12 @@ async def new_item_page(
     if user is None:
         return RedirectResponse(url="/web/login", status_code=303)
 
+    if user.current_home_id is None:
+        return RedirectResponse(
+            url="/web/homes?error=Please create or select a home first",
+            status_code=303,
+        )
+
     default_date: str = (datetime.now() + timedelta(days=30)).strftime(
         "%Y-%m-%d"
     )
@@ -66,15 +79,20 @@ async def new_item_page(
         "description": f"Barcode: {barcode}" if barcode else "",
     }
 
+    home_service: HomeService = HomeService(db)
+    current_home: Home | None = await home_service.get_user_current_home(user)
+
     return TEMPLATES.TemplateResponse(
         "pages/item_form.html",
         {
             "request": request,
             "user": user,
             "item": None,
-            "categories": await get_categories(db),
+            "categories": await get_categories(db, user.current_home_id),
+            "locations": await get_locations(db, user.current_home_id),
             "default_date": default_date,
             "prefill": prefill,
+            "current_home": current_home,
         },
     )
 
@@ -86,6 +104,7 @@ async def create_item(  # pylint: disable=too-many-arguments,too-many-positional
     name: str = Form(...),
     quantity: int = Form(...),
     category: str = Form("other"),
+    location: str | None = Form(None),
     expiration_date: str = Form(...),
     description: str | None = Form(None),
     image: UploadFile | None = File(None),
@@ -98,6 +117,7 @@ async def create_item(  # pylint: disable=too-many-arguments,too-many-positional
         name (str): The item name.
         quantity (int): The item quantity.
         category (str): The item category.
+        location (str | None): The storage location name (created if new).
         expiration_date (str): The item expiration date as ISO string.
         description (str | None): The item description.
         image (UploadFile | None): Optional uploaded image file.
@@ -110,6 +130,16 @@ async def create_item(  # pylint: disable=too-many-arguments,too-many-positional
     user: User | None = await get_current_web_user(request, db)
     if user is None:
         return RedirectResponse(url="/web/login", status_code=303)
+
+    if user.current_home_id is None:
+        return RedirectResponse(
+            url="/web/homes?error=Please create or select a home first",
+            status_code=303,
+        )
+
+    home_id: int = user.current_home_id
+    home_service: HomeService = HomeService(db)
+    current_home: Home | None = await home_service.get_user_current_home(user)
 
     try:
         exp_date: datetime = datetime.fromisoformat(expiration_date)
@@ -125,13 +155,20 @@ async def create_item(  # pylint: disable=too-many-arguments,too-many-positional
                 "request": request,
                 "user": user,
                 "item": None,
-                "categories": await get_categories(db),
+                "categories": await get_categories(db, home_id),
+                "locations": await get_locations(db, home_id),
                 "default_date": default_date,
                 "error": "Invalid expiration date",
+                "current_home": current_home,
             },
         )
 
-    # Read image data if provided
+    location_id: int | None = None
+    if location and location.strip():
+        loc_service = LocationService(db, home_id)
+        loc_obj = await loc_service.get_or_create_location(location.strip())
+        location_id = loc_obj.id
+
     image_bytes: bytes | None = None
     image_mime: str | None = None
     if image and image.filename:
@@ -139,12 +176,13 @@ async def create_item(  # pylint: disable=too-many-arguments,too-many-positional
         image_mime = image.content_type
 
     try:
-        await ItemService(db).create_item(
+        await ItemService(db, home_id).create_item(
             name=name,
             quantity=quantity,
             expiration_date=exp_date,
             user_id=user.id,
             category=category,
+            location_id=location_id,
             description=description,
             image_bytes=image_bytes,
             image_mime_type=image_mime,
@@ -159,9 +197,11 @@ async def create_item(  # pylint: disable=too-many-arguments,too-many-positional
                 "request": request,
                 "user": user,
                 "item": None,
-                "categories": await get_categories(db),
+                "categories": await get_categories(db, home_id),
+                "locations": await get_locations(db, home_id),
                 "default_date": default_date,
                 "error": "Image is too large",
+                "current_home": current_home,
             },
         )
 
@@ -191,14 +231,24 @@ async def edit_item_page(
     if user is None:
         return RedirectResponse(url="/web/login", status_code=303)
 
-    try:
-        item_response: FoodItemResponse = await ItemService(db).get_item(
-            item_id
+    if user.current_home_id is None:
+        return RedirectResponse(
+            url="/web/homes?error=Please create or select a home first",
+            status_code=303,
         )
+
+    home_id: int = user.current_home_id
+    home_service: HomeService = HomeService(db)
+    current_home: Home | None = await home_service.get_user_current_home(user)
+
+    try:
+        item_response: FoodItemResponse = await ItemService(
+            db, home_id
+        ).get_item(item_id)
     except ItemNotFoundError:
         return RedirectResponse(url="/web/dashboard", status_code=303)
 
-    item_dict: dict[str, t.Any] = item_response.model_dump()
+    item_dict: t.Dict[str, t.Any] = item_response.model_dump()
     item_dict["expiration_date"] = item_response.expiration_date.isoformat()
 
     return TEMPLATES.TemplateResponse(
@@ -207,8 +257,10 @@ async def edit_item_page(
             "request": request,
             "user": user,
             "item": item_dict,
-            "categories": await get_categories(db),
+            "categories": await get_categories(db, home_id),
+            "locations": await get_locations(db, home_id),
             "default_date": None,
+            "current_home": current_home,
         },
     )
 
@@ -221,6 +273,7 @@ async def update_item(  # pylint: disable=too-many-arguments,too-many-positional
     name: str = Form(...),
     quantity: int = Form(...),
     category: str = Form("other"),
+    location: str | None = Form(None),
     expiration_date: str = Form(...),
     description: str | None = Form(None),
     image: UploadFile | None = File(None),
@@ -235,6 +288,7 @@ async def update_item(  # pylint: disable=too-many-arguments,too-many-positional
         name (str): The item name.
         quantity (int): The item quantity.
         category (str): The item category.
+        location (str | None): The storage location name (created if new).
         expiration_date (str): The item expiration date as ISO string.
         description (str | None): The item description.
         image (UploadFile | None): Optional uploaded image file.
@@ -248,6 +302,14 @@ async def update_item(  # pylint: disable=too-many-arguments,too-many-positional
     if user is None:
         return RedirectResponse(url="/web/login", status_code=303)
 
+    if user.current_home_id is None:
+        return RedirectResponse(
+            url="/web/homes?error=Please create or select a home first",
+            status_code=303,
+        )
+
+    home_id: int = user.current_home_id
+
     try:
         exp_date: datetime = datetime.fromisoformat(expiration_date)
         if exp_date.tzinfo is None:
@@ -257,6 +319,19 @@ async def update_item(  # pylint: disable=too-many-arguments,too-many-positional
             url=f"/web/items/{item_id}/edit", status_code=303
         )
 
+    location_id: int | None = None
+    clear_location: bool = False
+    if location is not None:
+        if location.strip():
+            loc_service: LocationService = LocationService(db, home_id)
+            loc_obj: StorageLocation = await loc_service.get_or_create_location(
+                location.strip()
+            )
+            location_id = loc_obj.id
+        else:
+            # Empty string means clear location
+            clear_location = True
+
     # Read image data if provided
     image_bytes: bytes | None = None
     image_mime: str | None = None
@@ -265,12 +340,14 @@ async def update_item(  # pylint: disable=too-many-arguments,too-many-positional
         image_mime = image.content_type
 
     try:
-        await ItemService(db).update_item(
+        await ItemService(db, home_id).update_item(
             item_id=item_id,
             name=name,
             quantity=quantity,
             expiration_date=exp_date,
             category=category,
+            location_id=location_id,
+            clear_location=clear_location,
             description=description,
             image_bytes=image_bytes,
             image_mime_type=image_mime,
@@ -307,10 +384,19 @@ async def delete_item(
     if user is None:
         return RedirectResponse(url="/web/login", status_code=303)
 
+    if user.current_home_id is None:
+        return RedirectResponse(
+            url="/web/homes?error=Please create or select a home first",
+            status_code=303,
+        )
+
+    home_id: int = user.current_home_id
+
     try:
-        await ItemService(db).delete_item(item_id)
+        await ItemService(db, home_id).delete_item(item_id)
     except ItemNotFoundError:
-        pass  # Item already deleted, just redirect
+        # Item already deleted, just redirect
+        pass
 
     return RedirectResponse(url="/web/dashboard", status_code=303)
 
@@ -338,4 +424,6 @@ async def get_item_image(
     if user is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    return await get_food_item_image(item_id, db, thumbnail=thumbnail)
+    return await get_food_item_image(
+        item_id, db, home_id=user.current_home_id, thumbnail=thumbnail
+    )

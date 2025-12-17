@@ -14,6 +14,7 @@ from app.core.models import User
 from app.services import (
     AuthService,
     EmailExistsError,
+    HomeService,
     InvalidCurrentPasswordError,
 )
 from app.services.email_notifications import send_test_email
@@ -49,6 +50,7 @@ async def settings_page(
         {
             "request": request,
             "user": user,
+            "current_home": await HomeService(db).get_user_current_home(user),
             "smtp_enabled": SETTINGS.smtp_enabled,
             "message": message,
             "error": error,

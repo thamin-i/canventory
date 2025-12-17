@@ -1,4 +1,4 @@
-"""Category service for CRUD operations."""
+"""Category service for CRUD operations (home-scoped)."""
 
 import logging
 import typing as t
@@ -63,28 +63,33 @@ class CategoryValueExistsError(Exception):
 
 
 class CategoryService:
-    """Service class for category operations."""
+    """Service class for category operations (home-scoped)."""
 
     db: AsyncSession
+    home_id: int
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession, home_id: int) -> None:
         """Initialize the service.
 
         Args:
             db: The async database session.
+            home_id: The ID of the home to scope operations to.
         """
         self.db = db
+        self.home_id = home_id
 
     async def list_categories(self) -> t.List[Category]:
-        """List all categories ordered by sort_order.
+        """List all categories for the home ordered by sort_order.
 
         Returns:
-            List of all categories.
+            List of all categories in the home.
         """
         result: t.Sequence[Category] = (
             (
                 await self.db.execute(
-                    select(Category).order_by(Category.sort_order, Category.id)
+                    select(Category)
+                    .where(Category.home_id == self.home_id)
+                    .order_by(Category.sort_order, Category.id)
                 )
             )
             .scalars()
@@ -93,20 +98,20 @@ class CategoryService:
         return list(result)
 
     async def get_category(self, category_id: int) -> Category:
-        """Get a category by ID.
+        """Get a category by ID (must belong to the home).
 
         Args:
             category_id: The ID of the category.
 
         Returns:
             The category.
-
-        Raises:
-            CategoryNotFoundError: If the category is not found.
         """
         category: Category | None = (
             await self.db.execute(
-                select(Category).where(Category.id == category_id)
+                select(Category).where(
+                    Category.id == category_id,
+                    Category.home_id == self.home_id,
+                )
             )
         ).scalar_one_or_none()
         if category is None:
@@ -114,7 +119,7 @@ class CategoryService:
         return category
 
     async def get_category_by_value(self, value: str) -> Category | None:
-        """Get a category by value.
+        """Get a category by value within the home.
 
         Args:
             value: The value of the category.
@@ -124,7 +129,10 @@ class CategoryService:
         """
         return (
             await self.db.execute(
-                select(Category).where(Category.value == value)
+                select(Category).where(
+                    Category.value == value,
+                    Category.home_id == self.home_id,
+                )
             )
         ).scalar_one_or_none()
 
@@ -135,7 +143,7 @@ class CategoryService:
         icon: str,
         sort_order: int = 0,
     ) -> Category:
-        """Create a new category.
+        """Create a new category in the home.
 
         Args:
             value: The unique value identifier for the category.
@@ -145,15 +153,13 @@ class CategoryService:
 
         Returns:
             The created category.
-
-        Raises:
-            CategoryValueExistsError: If a category with the value exists.
         """
         existing: Category | None = await self.get_category_by_value(value)
         if existing is not None:
             raise CategoryValueExistsError(value)
 
         category: Category = Category(
+            home_id=self.home_id,
             value=value,
             label=label,
             icon=icon,
@@ -167,7 +173,9 @@ class CategoryService:
             await self.db.rollback()
             raise CategoryValueExistsError(value) from exc
 
-        LOGGER.info("Created category: %s (%s)", label, value)
+        LOGGER.info(
+            "Created category: %s (%s) in home %d", label, value, self.home_id
+        )
         return category
 
     async def update_category(
@@ -187,9 +195,6 @@ class CategoryService:
 
         Returns:
             The updated category.
-
-        Raises:
-            CategoryNotFoundError: If the category is not found.
         """
         category: Category = await self.get_category(category_id)
 
@@ -216,10 +221,6 @@ class CategoryService:
         Args:
             category_id: The ID of the category to delete.
             force: If True, reassign items to 'other' category before deletion.
-
-        Raises:
-            CategoryNotFoundError: If the category is not found.
-            CategoryInUseError: If the category is in use and force is False.
         """
         category: Category = await self.get_category(category_id)
 
@@ -228,7 +229,10 @@ class CategoryService:
             await self.db.execute(
                 select(
                     func.count(FoodItem.id)  # pylint: disable=not-callable
-                ).where(FoodItem.category == category.value)
+                ).where(
+                    FoodItem.category == category.value,
+                    FoodItem.home_id == self.home_id,
+                )
             )
         ).scalar() or 0
 
@@ -254,7 +258,8 @@ class CategoryService:
                 (
                     await self.db.execute(
                         select(FoodItem).where(
-                            FoodItem.category == category.value
+                            FoodItem.category == category.value,
+                            FoodItem.home_id == self.home_id,
                         )
                     )
                 )
@@ -286,16 +291,16 @@ class CategoryService:
 
         Returns:
             The number of items using this category.
-
-        Raises:
-            CategoryNotFoundError: If the category is not found.
         """
         category: Category = await self.get_category(category_id)
         result: int = (
             await self.db.execute(
                 select(
                     func.count(FoodItem.id)  # pylint: disable=not-callable
-                ).where(FoodItem.category == category.value)
+                ).where(
+                    FoodItem.category == category.value,
+                    FoodItem.home_id == self.home_id,
+                )
             )
         ).scalar() or 0
         return result

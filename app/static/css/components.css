@@ -159,6 +159,70 @@
   display: inline;
 }
 
+.form-hint {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* ============================================
+   Autocomplete Component
+   ============================================ */
+
+.autocomplete-wrapper {
+  position: relative;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-warm-white);
+  border: 2px solid var(--color-wheat);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  box-shadow: var(--shadow-md);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+  background: var(--color-sand);
+}
+
+.autocomplete-item mark {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  /* border-radius: 2px */;
+}
+
+.autocomplete-icon {
+  flex-shrink: 0;
+}
+
+.autocomplete-create {
+  border-top: 1px solid var(--color-wheat);
+  color: var(--color-primary);
+}
+
+.autocomplete-create:hover,
+.autocomplete-create.selected {
+  background: var(--color-primary-light);
+}
+
 /* ============================================
    Badges
    ============================================ */

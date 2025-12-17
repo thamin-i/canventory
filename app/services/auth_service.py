@@ -215,9 +215,6 @@ class AuthService:
 
         Returns:
             bool: True if password was changed successfully.
-
-        Raises:
-            InvalidCurrentPasswordError: If the current password is incorrect.
         """
         if not verify_password(current_password, user.hashed_password):
             raise InvalidCurrentPasswordError()
@@ -241,10 +238,6 @@ class AuthService:
 
         Returns:
             str: The new email address.
-
-        Raises:
-            InvalidCurrentPasswordError: If the password is incorrect.
-            EmailExistsError: If the new email is already in use.
         """
         if not verify_password(password, user.hashed_password):
             raise InvalidCurrentPasswordError()

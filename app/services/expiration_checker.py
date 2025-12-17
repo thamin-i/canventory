@@ -8,61 +8,78 @@ from email.mime.text import MIMEText
 
 import aiosmtplib
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.config import SETTINGS
 from app.core.database import ASYNC_SESSION_MAKER
-from app.core.models import ExpirationStatus, FoodItem
+from app.core.models import ExpirationStatus, Home
 from app.services.email_notifications import (
-    send_expiration_emails_to_all_subscribers,
+    send_expiration_emails_to_home_members,
 )
 
 LOGGER = logging.getLogger(__name__)
 
 
-async def get_expiring_items() -> t.Dict[str, t.Any]:
-    """Get all items that are expiring or expired.
+async def get_expiring_items_by_home() -> t.Dict[int, t.Dict[str, t.Any]]:
+    """Get all items that are expiring or expired, grouped by home.
 
     Returns:
-        Dict[str, Any]:
-            A dictionary containing lists of expiring items
-            categorized by their expiration status.
+        Dict[int, Dict[str, Any]]:
+            A dictionary mapping home IDs to their expiring items data.
     """
     async with ASYNC_SESSION_MAKER() as session:
-        items: t.Sequence[FoodItem] = (
-            (await session.execute(select(FoodItem))).scalars().all()
-        )
-        expired: t.List[t.Dict[str, t.Any]] = []
-        critical: t.List[t.Dict[str, t.Any]] = []
-        warning: t.List[t.Dict[str, t.Any]] = []
-
-        for item in items:
-            status: ExpirationStatus = item.get_expiration_status(
-                SETTINGS.expiration_warning_days,
-                SETTINGS.expiration_critical_days,
+        # Get all homes with their items
+        homes: t.Sequence[Home] = (
+            (
+                await session.execute(
+                    select(Home).options(selectinload(Home.food_items))
+                )
             )
+            .scalars()
+            .all()
+        )
 
-            item_info: t.Dict[str, t.Any] = {
-                "id": item.id,
-                "name": item.name,
-                "quantity": item.quantity,
-                "category": item.category,
-                "expiration_date": item.expiration_date.isoformat(),
-            }
+        result: t.Dict[int, t.Dict[str, t.Any]] = {}
 
-            match status:
-                case ExpirationStatus.EXPIRED:
-                    expired.append(item_info)
-                case ExpirationStatus.CRITICAL:
-                    critical.append(item_info)
-                case ExpirationStatus.WARNING:
-                    warning.append(item_info)
+        for home in homes:
+            expired: t.List[t.Dict[str, t.Any]] = []
+            critical: t.List[t.Dict[str, t.Any]] = []
+            warning: t.List[t.Dict[str, t.Any]] = []
 
-        return {
-            "expired": expired,
-            "critical": critical,
-            "warning": warning,
-            "checked_at": datetime.now(timezone.utc).isoformat(),
-        }
+            for item in home.food_items:
+                status: ExpirationStatus = item.get_expiration_status(
+                    SETTINGS.expiration_warning_days,
+                    SETTINGS.expiration_critical_days,
+                )
+
+                item_info: t.Dict[str, t.Any] = {
+                    "id": item.id,
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "category": item.category,
+                    "expiration_date": item.expiration_date.isoformat(),
+                }
+
+                match status:
+                    case ExpirationStatus.EXPIRED:
+                        expired.append(item_info)
+                    case ExpirationStatus.CRITICAL:
+                        critical.append(item_info)
+                    case ExpirationStatus.WARNING:
+                        warning.append(item_info)
+
+            # Only include homes with expiring items
+            if expired or critical or warning:
+                result[home.id] = {
+                    "home_id": home.id,
+                    "home_name": home.name,
+                    "expired": expired,
+                    "critical": critical,
+                    "warning": warning,
+                    "checked_at": datetime.now(timezone.utc).isoformat(),
+                }
+
+        return result
 
 
 async def send_email_notification(
@@ -106,18 +123,26 @@ async def send_email_notification(
     return True
 
 
-def format_expiration_report(expiring_data: t.Dict[str, t.Any]) -> str:
+def format_expiration_report(
+    expiring_data: t.Dict[str, t.Any], home_name: str | None = None
+) -> str:
     """Format expiration data into a readable report.
 
     Args:
         expiring_data (Dict[str, Any]): The expiring items data.
+        home_name (str | None): The name of the home (for report header).
 
     Returns:
         str: The formatted expiration report.
     """
+    title = (
+        f"CANVENTORY EXPIRATION REPORT - {home_name}"
+        if home_name
+        else "CANVENTORY EXPIRATION REPORT"
+    )
     lines: t.List[str] = [
         "=" * 50,
-        "CANVENTORY EXPIRATION REPORT",
+        title,
         f"Generated: {expiring_data['checked_at']}",
         "=" * 50,
         "",
@@ -176,28 +201,33 @@ async def check_expiring_items_task() -> None:
     LOGGER.info("Running expiration check...")
 
     try:
-        expiring_data: t.Dict[str, t.Any] = await get_expiring_items()
-        report: str = format_expiration_report(expiring_data)
-
-        LOGGER.info("\n%s", report)
-
-        has_alerts: bool = any(
-            [
-                expiring_data["expired"],
-                expiring_data["critical"],
-                expiring_data["warning"],
-            ]
+        expiring_by_home: t.Dict[int, t.Dict[str, t.Any]] = (
+            await get_expiring_items_by_home()
         )
 
-        if has_alerts:
+        if not expiring_by_home:
+            LOGGER.info("No expiring items found in any home")
+            return
+
+        total_email_count: int = 0
+
+        for home_id, expiring_data in expiring_by_home.items():
+            home_name: str = expiring_data.get("home_name", f"Home {home_id}")
+            report: str = format_expiration_report(expiring_data, home_name)
+
+            LOGGER.info("\n%s", report)
+
             if SETTINGS.smtp_enabled:
-                email_count: int = (
-                    await send_expiration_emails_to_all_subscribers(
-                        expiring_data
-                    )
+                email_count: int = await send_expiration_emails_to_home_members(
+                    home_id, expiring_data
                 )
-                if email_count > 0:
-                    LOGGER.info("Sent %d expiration alert emails", email_count)
+                total_email_count += email_count
+
+        if total_email_count > 0:
+            LOGGER.info(
+                "Sent %d expiration alert emails across all homes",
+                total_email_count,
+            )
 
     except Exception:  # pylint: disable=broad-except
         LOGGER.exception("Error in expiration check task")

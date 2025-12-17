@@ -1,4 +1,4 @@
-"""Item service - business logic for food item operations."""
+"""Item service - business logic for food item operations (home-scoped)."""
 
 import base64
 import binascii
@@ -12,6 +12,7 @@ from pathlib import Path
 
 from sqlalchemy import Select, UnaryExpression, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import SETTINGS
 from app.core.models import ExpirationStatus, FoodItem
@@ -53,17 +54,20 @@ class ImageTooLargeError(Exception):
 
 
 class ItemService:
-    """Service class for food item operations."""
+    """Service class for food item operations (home-scoped)."""
 
     db: AsyncSession
+    home_id: int
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession, home_id: int) -> None:
         """Initialize ItemService.
 
         Args:
             db (AsyncSession): The database session.
+            home_id (int): The ID of the home to scope operations to.
         """
         self.db = db
+        self.home_id = home_id
 
     def convert_item_to_response(self, item: FoodItem) -> FoodItemResponse:
         """Convert FoodItem model to FoodItemResponse schema.
@@ -77,12 +81,19 @@ class ItemService:
         days: int = calculate_days_until_expiration(item.expiration_date)
         has_image: bool = bool(item.image_path or item.image_data)
 
+        # Get location name if available
+        location_name: str | None = None
+        if item.storage_location is not None:
+            location_name = item.storage_location.name
+
         return FoodItemResponse(
             id=item.id,
             name=item.name,
             quantity=item.quantity,
             expiration_date=item.expiration_date,
             category=item.category,
+            location_id=item.location_id,
+            location_name=location_name,
             description=item.description,
             expiration_status=item.get_expiration_status(
                 SETTINGS.expiration_warning_days,
@@ -182,7 +193,7 @@ class ItemService:
             delete_thumbnail(item_id, image_path)
 
     async def get_item(self, item_id: int) -> FoodItemResponse:
-        """Get a specific food item by ID.
+        """Get a specific food item by ID (must belong to the home).
 
         Args:
             item_id (int): The ID of the food item.
@@ -192,7 +203,12 @@ class ItemService:
         """
         item: FoodItem | None = (
             await self.db.execute(
-                select(FoodItem).where(FoodItem.id == item_id)
+                select(FoodItem)
+                .options(selectinload(FoodItem.storage_location))
+                .where(
+                    FoodItem.id == item_id,
+                    FoodItem.home_id == self.home_id,
+                )
             )
         ).scalar_one_or_none()
 
@@ -202,7 +218,7 @@ class ItemService:
         return self.convert_item_to_response(item)
 
     async def get_item_model(self, item_id: int) -> FoodItem:
-        """Get the raw FoodItem model by ID.
+        """Get the raw FoodItem model by ID (must belong to the home).
 
         Args:
             item_id (int): The ID of the food item.
@@ -212,7 +228,12 @@ class ItemService:
         """
         item: FoodItem | None = (
             await self.db.execute(
-                select(FoodItem).where(FoodItem.id == item_id)
+                select(FoodItem)
+                .options(selectinload(FoodItem.storage_location))
+                .where(
+                    FoodItem.id == item_id,
+                    FoodItem.home_id == self.home_id,
+                )
             )
         ).scalar_one_or_none()
 
@@ -225,19 +246,25 @@ class ItemService:
         self,
         name: str | None = None,
         category: str | None = None,
+        location_id: int | None = None,
+        location_filter: str | None = None,
         expiration_status: ExpirationStatus | None = None,
         expiring_within_days: int | None = None,
         page: int = 1,
         page_size: int = 20,
         sort: str = "expiration_asc",
     ) -> FoodItemListResponse:
-        """List food items with optional filters and pagination.
+        """List food items with optional filters and pagination (home-scoped).
 
         Args:
             name (str | None):
                 Optional name filter.
             category (str | None):
                 Optional category filter.
+            location_id (int | None):
+                Optional filter for a specific location ID.
+            location_filter (str | None):
+                Special filter: "none" for items with no location.
             expiration_status (ExpirationStatus | None):
                 Optional expiration status filter.
             expiring_within_days (int | None):
@@ -252,7 +279,11 @@ class ItemService:
         Returns:
             FoodItemListResponse: The paginated list of food items.
         """
-        query: Select[t.Tuple[FoodItem]] = select(FoodItem)
+        query: Select[t.Tuple[FoodItem]] = (
+            select(FoodItem)
+            .options(selectinload(FoodItem.storage_location))
+            .where(FoodItem.home_id == self.home_id)
+        )
 
         # Apply filters
         if name is not None:
@@ -260,6 +291,12 @@ class ItemService:
 
         if category is not None:
             query = query.where(FoodItem.category == category)
+
+        # Location filter
+        if location_filter == "none":
+            query = query.where(FoodItem.location_id.is_(None))
+        elif location_id is not None:
+            query = query.where(FoodItem.location_id == location_id)
 
         if expiring_within_days is not None:
             threshold_date: datetime = datetime.now(timezone.utc).replace(
@@ -329,12 +366,13 @@ class ItemService:
         expiration_date: datetime,
         user_id: int,
         category: str = "other",
+        location_id: int | None = None,
         description: str | None = None,
         image_base64: str | None = None,
         image_bytes: bytes | None = None,
         image_mime_type: str | None = None,
     ) -> FoodItemResponse:
-        """Create a new food item.
+        """Create a new food item in the home.
 
         Args:
             name (str): The name of the food item.
@@ -342,6 +380,7 @@ class ItemService:
             expiration_date (datetime): The expiration date of the food item.
             user_id (int): The ID of the user creating the item.
             category (str): The category value of the food item.
+            location_id (int | None): An optional storage location ID.
             description (str | None): An optional description of the food item.
             image_base64 (str | None): An optional base64-encoded image string.
             image_bytes (bytes | None): An optional raw image data.
@@ -351,10 +390,12 @@ class ItemService:
             FoodItemResponse: The created food item response schema.
         """
         new_item: FoodItem = FoodItem(
+            home_id=self.home_id,
             name=name,
             quantity=quantity,
             expiration_date=expiration_date,
             category=category,
+            location_id=location_id,
             description=description,
             created_by=user_id,
         )
@@ -383,13 +424,15 @@ class ItemService:
         await self.db.refresh(new_item)
         return self.convert_item_to_response(new_item)
 
-    async def update_item(  # pylint: disable=too-many-arguments,too-many-positional-arguments,line-too-long  # noqa: E501
+    async def update_item(  # pylint: disable=too-many-arguments,too-many-positional-arguments,line-too-long,too-many-locals  # noqa: E501
         self,
         item_id: int,
         name: str | None = None,
         quantity: int | None = None,
         expiration_date: datetime | None = None,
         category: str | None = None,
+        location_id: int | None = None,
+        clear_location: bool = False,
         description: str | None = None,
         image_base64: str | None = None,
         image_bytes: bytes | None = None,
@@ -409,6 +452,10 @@ class ItemService:
                 The new expiration date.
             category (str | None):
                 The new category value of the food item.
+            location_id (int | None):
+                The new storage location ID.
+            clear_location (bool):
+                Whether to clear the location (set to None).
             description (str | None):
                 The new description of the food item.
             image_base64 (str | None):
@@ -434,6 +481,10 @@ class ItemService:
             item.expiration_date = expiration_date
         if category is not None:
             item.category = category
+        if clear_location:
+            item.location_id = None
+        elif location_id is not None:
+            item.location_id = location_id
         if description is not None:
             item.description = description
 
@@ -481,13 +532,19 @@ class ItemService:
         await self.db.delete(item)
 
     async def get_expiration_alerts(self) -> ExpirationAlertSummary:
-        """Get a summary of items with expiration alerts.
+        """Get a summary of items with expiration alerts (home-scoped).
 
         Returns:
             ExpirationAlertSummary: The summary of expiration alerts.
         """
         items: t.Sequence[FoodItem] = (
-            (await self.db.execute(select(FoodItem))).scalars().all()
+            (
+                await self.db.execute(
+                    select(FoodItem).where(FoodItem.home_id == self.home_id)
+                )
+            )
+            .scalars()
+            .all()
         )
 
         expired_items: t.List[ExpirationAlert] = []
@@ -528,13 +585,19 @@ class ItemService:
         )
 
     async def get_statistics(self) -> CanventoryStats:
-        """Get overall statistics for the food closet.
+        """Get overall statistics for the home.
 
         Returns:
             CanventoryStats: The food closet statistics.
         """
         items: t.Sequence[FoodItem] = (
-            (await self.db.execute(select(FoodItem))).scalars().all()
+            (
+                await self.db.execute(
+                    select(FoodItem).where(FoodItem.home_id == self.home_id)
+                )
+            )
+            .scalars()
+            .all()
         )
         total_items: int = len(items)
         total_quantity: int = sum(item.quantity for item in items)

@@ -1,4 +1,4 @@
-"""Food items CRUD endpoints."""
+"""Food items CRUD endpoints (home-scoped)."""
 
 import typing as t
 
@@ -23,6 +23,7 @@ from app.services import (
     ItemNotFoundError,
     ItemService,
 )
+from app.utils.home_membership import get_home_id_and_check_membership
 from app.utils.images import get_food_item_image
 
 ROUTER = APIRouter(prefix="/items", tags=["Food Items"])
@@ -31,13 +32,17 @@ ROUTER = APIRouter(prefix="/items", tags=["Food Items"])
 @ROUTER.get("", response_model=FoodItemListResponse)
 async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-arguments,line-too-long  # noqa: E501
     db: t.Annotated[AsyncSession, Depends(get_db)],
-    current_user: t.Annotated[  # pylint: disable=unused-argument
-        User, Depends(get_current_active_user)
-    ],
+    current_user: t.Annotated[User, Depends(get_current_active_user)],
     name: str | None = Query(
         None, description="Filter by name (partial match)"
     ),
     category: str | None = Query(None, description="Filter by category value"),
+    location_id: int | None = Query(
+        None, description="Filter by storage location ID"
+    ),
+    location_filter: str | None = Query(
+        None, description="Special filter: 'none' for items without a location"
+    ),
     expiration_status: ExpirationStatus | None = Query(
         None, description="Filter by expiration status"
     ),
@@ -47,7 +52,7 @@ async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
 ) -> FoodItemListResponse:
-    """List all food items with optional filters.
+    """List all food items in the current home with optional filters.
 
     Args:
         db (AsyncSession):
@@ -58,6 +63,10 @@ async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-
             Filter by name (partial match).
         category (str | None):
             Filter by category value.
+        location_id (int | None):
+            Filter by storage location ID.
+        location_filter (str | None):
+            Special filter: 'none' for items without a location.
         expiration_status (ExpirationStatus | None):
             Filter by expiration status.
         expiring_within_days (int | None):
@@ -70,9 +79,13 @@ async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-
     Returns:
         FoodItemListResponse: Paginated list of food items.
     """
-    return await ItemService(db).list_items(
+    home_id: int = await get_home_id_and_check_membership(db, current_user)
+
+    return await ItemService(db, home_id).list_items(
         name=name,
         category=category,
+        location_id=location_id,
+        location_filter=location_filter,
         expiration_status=expiration_status,
         expiring_within_days=expiring_within_days,
         page=page,
@@ -83,11 +96,9 @@ async def list_items(  # pylint: disable=too-many-arguments,too-many-positional-
 @ROUTER.get("/alerts", response_model=ExpirationAlertSummary)
 async def get_expiration_alerts(
     db: t.Annotated[AsyncSession, Depends(get_db)],
-    current_user: t.Annotated[  # pylint: disable=unused-argument
-        User, Depends(get_current_active_user)
-    ],
+    current_user: t.Annotated[User, Depends(get_current_active_user)],
 ) -> ExpirationAlertSummary:
-    """Get a summary of items with expiration alerts.
+    """Get a summary of items with expiration alerts in the current home.
 
     Args:
         db (AsyncSession): The database session.
@@ -96,17 +107,17 @@ async def get_expiration_alerts(
     Returns:
         ExpirationAlertSummary: Summary of expiration alerts.
     """
-    return await ItemService(db).get_expiration_alerts()
+    home_id: int = await get_home_id_and_check_membership(db, current_user)
+
+    return await ItemService(db, home_id).get_expiration_alerts()
 
 
 @ROUTER.get("/stats", response_model=CanventoryStats)
 async def get_statistics(
     db: t.Annotated[AsyncSession, Depends(get_db)],
-    current_user: t.Annotated[  # pylint: disable=unused-argument
-        User, Depends(get_current_active_user)
-    ],
+    current_user: t.Annotated[User, Depends(get_current_active_user)],
 ) -> CanventoryStats:
-    """Get overall statistics for the food closet.
+    """Get overall statistics for the current home.
 
     Args:
         db (AsyncSession): The database session.
@@ -115,16 +126,16 @@ async def get_statistics(
     Returns:
         CanventoryStats: The food closet statistics.
     """
-    return await ItemService(db).get_statistics()
+    home_id: int = await get_home_id_and_check_membership(db, current_user)
+
+    return await ItemService(db, home_id).get_statistics()
 
 
 @ROUTER.get("/{item_id}", response_model=FoodItemResponse)
 async def get_item(
     item_id: int,
     db: t.Annotated[AsyncSession, Depends(get_db)],
-    current_user: t.Annotated[  # pylint: disable=unused-argument
-        User, Depends(get_current_active_user)
-    ],
+    current_user: t.Annotated[User, Depends(get_current_active_user)],
 ) -> FoodItemResponse:
     """Get a specific food item by ID.
 
@@ -136,8 +147,10 @@ async def get_item(
     Returns:
         FoodItemResponse: The food item data.
     """
+    home_id: int = await get_home_id_and_check_membership(db, current_user)
+
     try:
-        return await ItemService(db).get_item(item_id)
+        return await ItemService(db, home_id).get_item(item_id)
     except ItemNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -149,9 +162,7 @@ async def get_item(
 async def get_item_image(
     item_id: int,
     db: t.Annotated[AsyncSession, Depends(get_db)],
-    current_user: t.Annotated[  # pylint: disable=unused-argument
-        User, Depends(get_current_active_user)
-    ],
+    current_user: t.Annotated[User, Depends(get_current_active_user)],
     thumbnail: bool = False,
 ) -> FileResponse | Response:
     """Get the image for a food item.
@@ -165,7 +176,11 @@ async def get_item_image(
     Returns:
         FileResponse | Response: The image file response or empty response.
     """
-    return await get_food_item_image(item_id, db, thumbnail=thumbnail)
+    home_id: int = await get_home_id_and_check_membership(db, current_user)
+
+    return await get_food_item_image(
+        item_id, db, home_id=home_id, thumbnail=thumbnail
+    )
 
 
 @ROUTER.post(
@@ -176,7 +191,7 @@ async def create_item(
     db: t.Annotated[AsyncSession, Depends(get_db)],
     current_user: t.Annotated[User, Depends(get_current_active_user)],
 ) -> FoodItemResponse:
-    """Create a new food item.
+    """Create a new food item in the current home.
 
     Args:
         item_data (FoodItemCreate): The food item data.
@@ -186,13 +201,16 @@ async def create_item(
     Returns:
         FoodItemResponse: The created food item data.
     """
+    home_id: int = await get_home_id_and_check_membership(db, current_user)
+
     try:
-        return await ItemService(db).create_item(
+        return await ItemService(db, home_id).create_item(
             name=item_data.name,
             quantity=item_data.quantity,
             expiration_date=item_data.expiration_date,
             user_id=current_user.id,
             category=item_data.category,
+            location_id=item_data.location_id,
             description=item_data.description,
             image_base64=item_data.image_base64,
         )
@@ -213,9 +231,7 @@ async def update_item(
     item_id: int,
     item_data: FoodItemUpdate,
     db: t.Annotated[AsyncSession, Depends(get_db)],
-    current_user: t.Annotated[  # pylint: disable=unused-argument
-        User, Depends(get_current_active_user)
-    ],
+    current_user: t.Annotated[User, Depends(get_current_active_user)],
 ) -> FoodItemResponse:
     """Update an existing food item.
 
@@ -228,13 +244,17 @@ async def update_item(
     Returns:
         FoodItemResponse: The updated food item data.
     """
+    home_id: int = await get_home_id_and_check_membership(db, current_user)
+
     try:
-        return await ItemService(db).update_item(
+        return await ItemService(db, home_id).update_item(
             item_id=item_id,
             name=item_data.name,
             quantity=item_data.quantity,
             expiration_date=item_data.expiration_date,
             category=item_data.category,
+            location_id=item_data.location_id,
+            clear_location=item_data.clear_location or False,
             description=item_data.description,
             image_base64=item_data.image_base64,
             remove_image=item_data.remove_image or False,
@@ -260,9 +280,7 @@ async def update_item(
 async def delete_item(
     item_id: int,
     db: t.Annotated[AsyncSession, Depends(get_db)],
-    current_user: t.Annotated[  # pylint: disable=unused-argument
-        User, Depends(get_current_active_user)
-    ],
+    current_user: t.Annotated[User, Depends(get_current_active_user)],
 ) -> None:
     """Delete a food item.
 
@@ -272,7 +290,10 @@ async def delete_item(
         current_user (User): The currently authenticated user.
     """
     try:
-        await ItemService(db).delete_item(item_id)
+        await ItemService(
+            db,
+            await get_home_id_and_check_membership(db, current_user),
+        ).delete_item(item_id)
     except ItemNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

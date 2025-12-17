@@ -1,0 +1,205 @@
+/* ============================================
+   Canventory - Homes Page Styles
+   Home cards, invitations, members management
+   ============================================ */
+
+/* ============================================
+   Homes Grid
+   ============================================ */
+
+.homes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+/* ============================================
+   Home Cards
+   ============================================ */
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s ease;
+}
+
+.home-card.active {
+  border-color: var(--primary);
+  background: var(--primary-surface);
+}
+
+.home-card-content {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.home-icon {
+  font-size: 2rem;
+}
+
+.home-info h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.home-role {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.home-card-actions {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+
+/* ============================================
+   Create Home Form
+   ============================================ */
+
+.create-home-form {
+  margin-top: var(--space-md);
+}
+
+.flex-grow {
+  flex: 1;
+}
+
+.form-row {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-end;
+}
+
+.form-actions-inline {
+  padding-bottom: 0;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+
+.form-actions-inline .btn {
+  margin-bottom: 0;
+}
+
+/* ============================================
+   Empty State (Small)
+   ============================================ */
+
+.empty-state-small {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ============================================
+   Danger Zone
+   ============================================ */
+
+.danger-zone {
+  margin-top: var(--space-xl);
+  padding: var(--space-md);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.danger-zone-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.danger-zone-info h4 {
+  margin: 0 0 var(--space-xs) 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.danger-zone-info p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ============================================
+   Invitations
+   ============================================ */
+
+.invitations-card {
+  border: 2px solid var(--color-primary-light);
+  background: linear-gradient(
+    135deg,
+    var(--color-warm-white) 0%,
+    rgba(var(--color-primary-rgb, 139, 90, 43), 0.05) 100%
+  );
+}
+
+.invitations-list {
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.invitation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  background: var(--color-warm-white);
+  border: 1px solid var(--color-wheat);
+  border-radius: var(--radius-md);
+  gap: var(--space-md);
+}
+
+.invitation-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.invitation-icon {
+  font-size: 1.5rem;
+}
+
+.invitation-details h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.invitation-meta {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.invitation-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+  .invitation-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invitation-actions {
+    justify-content: flex-end;
+    margin-top: var(--space-sm);
+  }
+}

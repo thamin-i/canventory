@@ -46,6 +46,9 @@
   font-weight: 600;
   color: var(--color-primary);
   white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .back-btn {
@@ -192,6 +195,7 @@
 
   .logo {
     font-size: 1.15rem;
+    max-width: 120px;
   }
 
   .back-btn,

@@ -9,10 +9,11 @@ from pathlib import Path
 import aiosmtplib
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.core.config import SETTINGS
 from app.core.database import ASYNC_SESSION_MAKER
-from app.core.models import User
+from app.core.models import HomeMembership, User
 
 LOGGER = logging.getLogger(__name__)
 
@@ -91,15 +92,19 @@ def render_template(template_name: str, **context: t.Any) -> str:
 
 
 def format_expiration_html_email(
-    expiring_data: t.Dict[str, t.List[t.Dict[str, t.Any]]], username: str
+    expiring_data: t.Dict[str, t.Any],
+    username: str,
+    home_name: str | None = None,
 ) -> str:
     """Format expiration data into an HTML email.
 
     Args:
-        expiring_data (t.Dict[str, t.List[t.Dict[str, t.Any]]]):
+        expiring_data (t.Dict[str, t.Any]):
             Expiration data categorized by severity.
         username (str):
             The username of the recipient.
+        home_name (str | None):
+            The name of the home (optional).
 
     Returns:
         str: The rendered HTML email as a string.
@@ -107,24 +112,29 @@ def format_expiration_html_email(
     return render_template(
         "emails/expiration_alert.html",
         username=username,
-        expired=expiring_data["expired"],
-        critical=expiring_data["critical"],
-        warning=expiring_data["warning"],
+        home_name=home_name,
+        expired=expiring_data.get("expired", []),
+        critical=expiring_data.get("critical", []),
+        warning=expiring_data.get("warning", []),
         critical_days=SETTINGS.expiration_critical_days,
         warning_days=SETTINGS.expiration_warning_days,
     )
 
 
 def format_expiration_text_email(
-    expiring_data: t.Dict[str, t.List[t.Dict[str, t.Any]]], username: str
+    expiring_data: t.Dict[str, t.Any],
+    username: str,
+    home_name: str | None = None,
 ) -> str:
     """Format expiration data into a plain text email.
 
     Args:
-        expiring_data (t.Dict[str, t.List[t.Dict[str, t.Any]]]):
+        expiring_data (t.Dict[str, t.Any]):
             Expiration data categorized by severity.
         username (str):
             The username of the recipient.
+        home_name (str | None):
+            The name of the home (optional).
 
     Returns:
         str: The rendered plain text email as a string.
@@ -132,9 +142,10 @@ def format_expiration_text_email(
     return render_template(
         "emails/expiration_alert.txt",
         username=username,
-        expired=expiring_data["expired"],
-        critical=expiring_data["critical"],
-        warning=expiring_data["warning"],
+        home_name=home_name,
+        expired=expiring_data.get("expired", []),
+        critical=expiring_data.get("critical", []),
+        warning=expiring_data.get("warning", []),
         critical_days=SETTINGS.expiration_critical_days,
         warning_days=SETTINGS.expiration_warning_days,
     )
@@ -162,17 +173,51 @@ async def get_users_with_email_notifications() -> t.List[User]:
         return list(users)
 
 
+async def get_home_members_with_email_notifications(
+    home_id: int,
+) -> t.List[User]:
+    """Get all members of a home who have email notifications enabled.
+
+    Args:
+        home_id (int): The ID of the home.
+
+    Returns:
+        t.List[User]: List of users with email notifications enabled.
+    """
+    async with ASYNC_SESSION_MAKER() as session:
+        memberships: t.Sequence[HomeMembership] = (
+            (
+                await session.execute(
+                    select(HomeMembership)
+                    .options(selectinload(HomeMembership.user))
+                    .where(HomeMembership.home_id == home_id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+        return [
+            m.user
+            for m in memberships
+            if m.user.email_notifications_enabled and m.user.is_active
+        ]
+
+
 async def send_expiration_email_to_user(
     user: User,
-    expiring_data: t.Dict[str, t.List[t.Dict[str, t.Any]]],
+    expiring_data: t.Dict[str, t.Any],
+    home_name: str | None = None,
 ) -> bool:
     """Send expiration alert email to a specific user.
 
     Args:
         user (User):
             The user to send the email to.
-        expiring_data (t.Dict[str, t.List[t.Dict[str, t.Any]]]):
+        expiring_data (t.Dict[str, t.Any]):
             Expiration data categorized by severity.
+        home_name (str | None):
+            The name of the home for the email context.
 
     Returns:
         bool: True if email was sent, False otherwise.
@@ -186,9 +231,9 @@ async def send_expiration_email_to_user(
 
     has_alerts: bool = any(
         [
-            expiring_data["expired"],
-            expiring_data["critical"],
-            expiring_data["warning"],
+            expiring_data.get("expired", []),
+            expiring_data.get("critical", []),
+            expiring_data.get("warning", []),
         ]
     )
 
@@ -196,14 +241,19 @@ async def send_expiration_email_to_user(
         return False
 
     # Determine subject based on severity
-    subject: str = "📋 [Canventory] Expiration reminder"
-    if expiring_data["expired"]:
-        subject = "⚠️ [Canventory] Items have expired!"
-    elif expiring_data["critical"]:
-        subject = "🚨 [Canventory] Items expiring soon!"
+    home_suffix = f" - {home_name}" if home_name else ""
+    subject: str = f"📋 [Canventory] Expiration reminder{home_suffix}"
+    if expiring_data.get("expired"):
+        subject = f"⚠️ [Canventory] Items have expired!{home_suffix}"
+    elif expiring_data.get("critical"):
+        subject = f"🚨 [Canventory] Items expiring soon!{home_suffix}"
 
-    text_body: str = format_expiration_text_email(expiring_data, user.username)
-    html_body: str = format_expiration_html_email(expiring_data, user.username)
+    text_body: str = format_expiration_text_email(
+        expiring_data, user.username, home_name
+    )
+    html_body: str = format_expiration_html_email(
+        expiring_data, user.username, home_name
+    )
 
     return await send_email(
         to_email=user.email,
@@ -213,13 +263,54 @@ async def send_expiration_email_to_user(
     )
 
 
+async def send_expiration_emails_to_home_members(
+    home_id: int,
+    expiring_data: t.Dict[str, t.Any],
+) -> int:
+    """Send expiration emails to all members
+        of a home with notifications enabled.
+
+    Args:
+        home_id (int): The ID of the home.
+        expiring_data (t.Dict[str, t.Any]):
+            Expiration data categorized by severity.
+
+    Returns:
+        int: Number of emails sent.
+    """
+    if not SETTINGS.smtp_enabled:
+        LOGGER.debug("SMTP not enabled, skipping email notifications")
+        return 0
+
+    users: t.List[User] = await get_home_members_with_email_notifications(
+        home_id
+    )
+    home_name: str = expiring_data.get("home_name", f"Home {home_id}")
+    sent_count: int = 0
+
+    for user in users:
+        if await send_expiration_email_to_user(user, expiring_data, home_name):
+            sent_count += 1
+
+    if sent_count > 0:
+        LOGGER.info(
+            "Sent expiration emails to %d members of home '%s'",
+            sent_count,
+            home_name,
+        )
+
+    return sent_count
+
+
 async def send_expiration_emails_to_all_subscribers(
-    expiring_data: t.Dict[str, t.List[t.Dict[str, t.Any]]],
+    expiring_data: t.Dict[str, t.Any],
 ) -> int:
     """Send expiration emails to all users with email notifications enabled.
 
+    This is a legacy function kept for backward compatibility.
+
     Args:
-        expiring_data (t.Dict[str, t.List[t.Dict[str, t.Any]]]):
+        expiring_data (t.Dict[str, t.Any]):
             Expiration data categorized by severity.
 
     Returns:

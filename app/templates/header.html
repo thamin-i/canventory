@@ -11,7 +11,7 @@
     </div>
     <div class="header-center">
         <a href="/web/dashboard" class="btn btn-ghost">
-            <h1 class="logo">🥫 Canventory</h1>
+            <h1 class="logo">🏠 {% if current_home %}{{ current_home.name }}{% else %}Canventory{% endif %}</h1>
         </a>
     </div>
     <div class="header-right">
@@ -25,6 +25,11 @@
                 <span>Welcome, {{ user.username }}!</span>
             </div>
             <div class="header-dropdown-divider"></div>
+            <a href="/web/homes"
+                class="header-dropdown-item{% if request.path.startswith('/web/homes') %} active{% endif %}">
+                <span>🏠</span>
+                <span>Manage Homes</span>
+            </a>
             <a href="/web/settings"
                 class="header-dropdown-item{% if request.path.startswith('/web/settings') %} active{% endif %}">
                 <span>⚙️</span>

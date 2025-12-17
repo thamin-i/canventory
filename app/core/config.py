@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     )
 
     # CORS
-    cors_origins: list[str] = ["*"]
+    cors_origins: t.List[str] = ["*"]
 
     # Email notifications (optional)
     smtp_enabled: bool = False

@@ -177,6 +177,12 @@ export function initDeleteConfirmations() {
           message:
             "This category has no items and can be safely deleted. This action cannot be undone.",
         });
+      } else if (confirmType === "home-delete") {
+        confirmed = await Modal.confirmDelete(itemName, {
+          title: "Delete Home",
+          message:
+            "This will permanently delete the home and all its items, categories, and members. This action cannot be undone.",
+        });
       } else {
         confirmed = await Modal.confirm(this.dataset.confirm, {
           type: "warning",

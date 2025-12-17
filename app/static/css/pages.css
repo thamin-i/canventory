@@ -3,6 +3,8 @@
    Login, Dashboard, Admin, Settings, Forms
    ============================================ */
 
+@import url("pages/homes.css");
+
 /* ============================================
    Login Page
    ============================================ */
@@ -261,7 +263,14 @@
 .item-category {
   font-size: 0.8125rem;
   color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.item-location {
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
   margin-bottom: var(--space-sm);
+  opacity: 0.9;
 }
 
 .item-expiration {
@@ -442,7 +451,7 @@
    ============================================ */
 
 .settings-container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: var(--space-xl);
   display: flex;

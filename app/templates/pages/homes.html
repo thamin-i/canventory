@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+
+{% block title %}Homes - Canventory{% endblock %}
+{% block body_class %}app-page{% endblock %}
+
+{% block head %}
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+<link rel="stylesheet" href="{{ url_for('static', path='css/pages/admin.css') }}">
+{% endblock %}
+
+{% include "header.html" %}
+
+{% block content %}
+
+{% if message %}
+<div class="alert-banner success">
+    <span>✅ {{ message }}</span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert-banner error">
+    <span>❌ {{ error }}</span>
+</div>
+{% endif %}
+
+<main class="admin-container">
+    <!-- My Homes -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>🏠 My Homes</h2>
+            <p class="settings-description">Switch between homes or create your own</p>
+        </div>
+
+        {% if homes %}
+        <div class="homes-grid">
+            {% for home in homes | sort(attribute='is_owner', reverse=true) %}
+            <div class="home-card {% if user.current_home_id == home.id %}active{% endif %}">
+                <div class="home-card-content">
+                    <div class="home-icon">🏠</div>
+                    <div class="home-info">
+                        <h3>{{ home.name }}</h3>
+                        <span class="home-role">{% if home.is_owner %}Owner{% else %}Member{% endif %}</span>
+                    </div>
+                </div>
+                <div class="home-card-actions">
+                    {% if user.current_home_id != home.id %}
+                    <form method="post" action="/web/homes/{{ home.id }}/switch" class="inline-form">
+                        <button type="submit" class="btn btn-primary btn-sm">Switch</button>
+                    </form>
+                    {% else %}
+                    <span class="badge badge-success">Current</span>
+                    {% endif %}
+                    {% if not home.is_owner %}
+                    <form method="post" action="/web/homes/{{ home.id }}/leave" class="inline-form"
+                        data-confirm="delete" data-confirm-item="{{ home.name }}" data-confirm-type="leave">
+                        <button type="submit" class="btn btn-ghost btn-sm btn-danger-text">Leave</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state-small">
+            <p>You don't have any homes yet. Create one to get started!</p>
+        </div>
+        {% endif %}
+
+        <!-- Create new home (only if not already owner) -->
+        {% set user_owns_home = homes | selectattr('is_owner') | list | length > 0 %}
+        {% if not user_owns_home %}
+        <div class="create-home-form">
+            <form method="post" action="/web/homes/create" class="admin-form">
+                <div class="form-row">
+                    <div class="form-group flex-grow">
+                        <label for="new-home-name">Create your own Home</label>
+                        <input type="text" id="new-home-name" name="name" required minlength="1" maxlength="100"
+                            placeholder="Enter home name (e.g., My Kitchen, Family Home)">
+                    </div>
+                    <div class="form-actions-inline">
+                        <button type="submit" class="btn btn-primary">Create</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pending Invitations -->
+    {% if pending_invitations %}
+    <div class="admin-card invitations-card">
+        <div class="admin-card-header">
+            <h2>📬 Pending Invitations</h2>
+            <p class="settings-description">You have {{ pending_invitations | length }} pending invitation{% if pending_invitations | length > 1 %}s{% endif %}</p>
+        </div>
+        <div class="invitations-list">
+            {% for invitation in pending_invitations %}
+            <div class="invitation-item">
+                <div class="invitation-info">
+                    <div class="invitation-icon">🏠</div>
+                    <div class="invitation-details">
+                        <h4>{{ invitation.home_name }}</h4>
+                        <span class="invitation-meta">Invited by {{ invitation.owner_username }}</span>
+                    </div>
+                </div>
+                <div class="invitation-actions">
+                    <form method="post" action="/web/homes/invitations/{{ invitation.id }}/accept" class="inline-form">
+                        <button type="submit" class="btn btn-primary btn-sm">Accept</button>
+                    </form>
+                    <form method="post" action="/web/homes/invitations/{{ invitation.id }}/decline" class="inline-form">
+                        <button type="submit" class="btn btn-ghost btn-sm">Decline</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if current_home and is_current_home_owner %}
+    <!-- Home Settings (Owner Only) -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>⚙️ Home Settings</h2>
+            <p class="settings-description">Manage your home "{{ current_home.name }}"</p>
+        </div>
+        <form method="post" action="/web/homes/{{ current_home.id }}/update" class="admin-form">
+            <div class="form-row">
+                <div class="form-group flex-grow">
+                    <label for="home-name">Home Name</label>
+                    <input type="text" id="home-name" name="name" value="{{ current_home.name }}" required minlength="1"
+                        maxlength="100">
+                </div>
+                <div class="form-actions-inline">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                </div>
+            </div>
+        </form>
+        <div class="danger-zone">
+            <div class="danger-zone-content">
+                <div class="danger-zone-info">
+                    <h4>🗑️ Delete this home</h4>
+                    <p>Permanently delete "{{ current_home.name }}" and all its items. This action cannot be undone.</p>
+                </div>
+                <form method="post" action="/web/homes/{{ current_home.id }}/delete" data-confirm="delete"
+                    data-confirm-item="{{ current_home.name }}" data-confirm-type="home-delete">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Management -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>👥 Members</h2>
+            <p class="settings-description">Invite users to your home or remove members</p>
+        </div>
+
+        <!-- Invite Form -->
+        <form method="post" action="/web/homes/{{ current_home.id }}/invite" class="admin-form">
+            <div class="form-row">
+                <div class="form-group flex-grow">
+                    <label for="invite-user">Invite by Username or Email</label>
+                    <input type="text" id="invite-user" name="username_or_email" required
+                        placeholder="Enter username or email">
+                </div>
+                <div class="form-actions-inline">
+                    <button type="submit" class="btn btn-primary">Invite</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Members Table -->
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in current_home_members %}
+                    <tr>
+                        <td>
+                            <strong>{{ member.username }}</strong>
+                            {% if member.user_id == user.id %}
+                            <span class="badge badge-info">You</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ member.email }}</td>
+                        <td>
+                            {% if member.role.value == 'owner' %}
+                            <span class="badge badge-admin">👑 Owner</span>
+                            {% else %}
+                            <span class="badge badge-user">Member</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if member.status.value == 'pending' %}
+                            <span class="badge badge-warning">⏳ Pending</span>
+                            {% else %}
+                            <span class="badge badge-success">✓ Joined {{ member.joined_at.strftime('%Y-%m-%d') if member.joined_at else '' }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="actions-cell">
+                            {% if member.role.value != 'owner' %}
+                            <form method="post"
+                                action="/web/homes/{{ current_home.id }}/members/{{ member.user_id }}/remove"
+                                class="inline-form" data-confirm="delete" data-confirm-item="{{ member.username }}"
+                                data-confirm-type="remove-member">
+                                <button type="submit" class="btn btn-sm btn-ghost btn-danger-text" title="Remove">
+                                    🗑️
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-muted"></span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Category Management -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>🏷️ Categories</h2>
+            <p class="settings-description">Manage food categories for this home</p>
+        </div>
+
+        <!-- Add Category Form -->
+        <form method="post" action="/web/homes/categories/create" class="admin-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cat-icon">Icon</label>
+                    <div class="emoji-input-wrapper">
+                        <input type="text" id="cat-icon" name="icon" required maxlength="10" placeholder="🍽️"
+                            class="icon-input" readonly>
+                        <button type="button" class="emoji-picker-toggle" data-target="cat-icon" title="Choose emoji">
+                            😀
+                        </button>
+                        <div class="emoji-picker-container" id="emoji-picker-cat-icon">
+                            <emoji-picker></emoji-picker>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group flex-grow">
+                    <label for="cat-label">Label</label>
+                    <input type="text" id="cat-label" name="label" required maxlength="100"
+                        placeholder="e.g., Canned Goods">
+                </div>
+                <div class="form-group">
+                    <label for="cat-value">Value</label>
+                    <input type="text" id="cat-value" name="value" required maxlength="50" pattern="[a-z_]+"
+                        placeholder="e.g., canned_goods" title="Only lowercase letters and underscores">
+                </div>
+                <div class="form-actions-inline">
+                    <button type="submit" class="btn btn-primary">Add</button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Categories Table -->
+        <div class="table-responsive">
+            <table class="admin-table" id="categories-table">
+                <thead>
+                    <tr>
+                        <th class="drag-col"></th>
+                        <th>Icon</th>
+                        <th>Label</th>
+                        <th>Value</th>
+                        <th>Items</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="categories-tbody">
+                    {% for cat in current_home_categories %}
+                    <tr draggable="true" data-category-id="{{ cat.id }}">
+                        <td class="drag-handle" title="Drag to reorder">
+                            <span class="drag-icon">⋮⋮</span>
+                        </td>
+                        <td>
+                            <span class="category-icon">{{ cat.icon }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ cat.label }}</strong>
+                        </td>
+                        <td>
+                            <code class="category-value">{{ cat.value }}</code>
+                        </td>
+                        <td>
+                            <span
+                                class="item-count-badge {% if category_item_counts.get(cat.value, 0) > 0 %}has-items{% endif %}">
+                                {{ category_item_counts.get(cat.value, 0) }}
+                            </span>
+                        </td>
+                        <td class="actions-cell">
+                            <div class="action-buttons">
+                                <button type="button" class="btn btn-sm btn-ghost" title="Edit"
+                                    onclick="openEditCategoryModal({{ cat.id }}, '{{ cat.label }}', '{{ cat.icon }}')">
+                                    ✏️
+                                </button>
+                                {% if category_item_counts.get(cat.value, 0) == 0 %}
+                                <form method="post" action="/web/homes/categories/{{ cat.id }}/delete"
+                                    class="inline-form" data-confirm="delete" data-confirm-item="{{ cat.label }}"
+                                    data-confirm-type="category-delete">
+                                    <button type="submit" class="btn btn-sm btn-ghost btn-danger-text" title="Delete">
+                                        🗑️
+                                    </button>
+                                </form>
+                                {% else %}
+                                <button type="button" class="btn btn-sm btn-ghost btn-danger-text" title="Delete"
+                                    onclick="openDeleteCategoryModal({{ cat.id }}, '{{ cat.label }}', {{ category_item_counts.get(cat.value, 0) }})">
+                                    🗑️
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% elif current_home %}
+    <!-- Member View (non-owner) -->
+    <div class="admin-card">
+        <div class="admin-card-header">
+            <h2>👥 Home Members</h2>
+            <p class="settings-description">Members of "{{ current_home.name }}"</p>
+        </div>
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in current_home_members %}
+                    <tr>
+                        <td>
+                            <strong>{{ member.username }}</strong>
+                            {% if member.user_id == user.id %}
+                            <span class="badge badge-info">You</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if member.role.value == 'owner' %}
+                            <span class="badge badge-admin">👑 Owner</span>
+                            {% else %}
+                            <span class="badge badge-user">Member</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ member.joined_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</main>
+
+<!-- Edit Category Modal -->
+<div id="edit-category-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeEditCategoryModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Category</h3>
+            <button type="button" class="modal-close" onclick="closeEditCategoryModal()">&times;</button>
+        </div>
+        <form id="edit-category-form" method="post" action="">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-cat-icon">Icon (emoji)</label>
+                    <div class="emoji-input-wrapper">
+                        <input type="text" id="edit-cat-icon" name="icon" required maxlength="10" class="icon-input"
+                            readonly>
+                        <button type="button" class="emoji-picker-toggle" data-target="edit-cat-icon"
+                            title="Choose emoji">
+                            😀
+                        </button>
+                        <div class="emoji-picker-container" id="emoji-picker-edit-cat-icon">
+                            <emoji-picker></emoji-picker>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-cat-label">Label</label>
+                    <input type="text" id="edit-cat-label" name="label" required maxlength="100">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeEditCategoryModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div id="delete-category-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="closeDeleteCategoryModal()"></div>
+    <div class="modal-content modal-container">
+        <div class="modal-header">
+            <div class="modal-icon danger">🗑️</div>
+            <div class="modal-header-text">
+                <h3 class="modal-title">Delete Category</h3>
+                <p class="modal-subtitle" id="delete-cat-name"></p>
+            </div>
+        </div>
+        <form id="delete-category-form" method="post" action="">
+            <div class="modal-body">
+                <div class="delete-warning-box">
+                    <p class="delete-item-count">
+                        ⚠️ This category is used by <strong id="delete-item-count">0</strong> item(s).
+                    </p>
+                </div>
+                <div class="form-group" style="margin-top: var(--space-md);">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="force" value="1" id="delete-force-checkbox">
+                        <span id="force-delete-label">Force delete and reassign items to "Other"</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeDeleteCategoryModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger" id="delete-cat-submit" disabled>Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script type="module">
+    // Category management functions (same as admin page but with different URLs)
+    function openEditCategoryModal(id, label, icon) {
+        const modal = document.getElementById('edit-category-modal');
+        const form = document.getElementById('edit-category-form');
+        const labelInput = document.getElementById('edit-cat-label');
+        const iconInput = document.getElementById('edit-cat-icon');
+
+        form.action = `/web/homes/categories/${id}/update`;
+        labelInput.value = label;
+        iconInput.value = icon;
+        modal.style.display = 'flex';
+    }
+    window.openEditCategoryModal = openEditCategoryModal;
+
+    function closeEditCategoryModal() {
+        document.getElementById('edit-category-modal').style.display = 'none';
+    }
+    window.closeEditCategoryModal = closeEditCategoryModal;
+
+    function openDeleteCategoryModal(id, label, itemCount) {
+        const modal = document.getElementById('delete-category-modal');
+        const form = document.getElementById('delete-category-form');
+        const nameEl = document.getElementById('delete-cat-name');
+        const countEl = document.getElementById('delete-item-count');
+        const checkbox = document.getElementById('delete-force-checkbox');
+        const submitBtn = document.getElementById('delete-cat-submit');
+
+        form.action = `/web/homes/categories/${id}/delete`;
+        nameEl.textContent = label;
+        countEl.textContent = itemCount;
+        checkbox.checked = false;
+        submitBtn.disabled = true;
+        modal.style.display = 'flex';
+    }
+    window.openDeleteCategoryModal = openDeleteCategoryModal;
+
+    function closeDeleteCategoryModal() {
+        document.getElementById('delete-category-modal').style.display = 'none';
+    }
+    window.closeDeleteCategoryModal = closeDeleteCategoryModal;
+
+    // Enable delete button when checkbox is checked
+    document.getElementById('delete-force-checkbox')?.addEventListener('change', (e) => {
+        document.getElementById('delete-cat-submit').disabled = !e.target.checked;
+    });
+
+    // Emoji picker functionality
+    document.querySelectorAll('.emoji-picker-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.dataset.target;
+            const container = document.getElementById(`emoji-picker-${targetId}`);
+            container.classList.toggle('show');
+        });
+    });
+
+    document.querySelectorAll('emoji-picker').forEach(picker => {
+        picker.addEventListener('emoji-click', (e) => {
+            const container = picker.closest('.emoji-picker-container');
+            const inputId = container.id.replace('emoji-picker-', '');
+            const input = document.getElementById(inputId);
+            input.value = e.detail.unicode;
+            container.classList.remove('show');
+        });
+    });
+
+    // Click outside to close emoji picker
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.emoji-input-wrapper')) {
+            document.querySelectorAll('.emoji-picker-container').forEach(c => c.classList.remove('show'));
+        }
+    });
+
+    // Category drag and drop reordering
+    const tbody = document.getElementById('categories-tbody');
+    if (tbody) {
+        let draggedRow = null;
+
+        tbody.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('dragstart', (e) => {
+                draggedRow = row;
+                row.classList.add('dragging');
+            });
+
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                saveOrder();
+            });
+
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedRow !== row) {
+                    const rect = row.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        tbody.insertBefore(draggedRow, row);
+                    } else {
+                        tbody.insertBefore(draggedRow, row.nextSibling);
+                    }
+                }
+            });
+        });
+
+        async function saveOrder() {
+            const rows = tbody.querySelectorAll('tr');
+            const categories = Array.from(rows).map((row, idx) => ({
+                id: parseInt(row.dataset.categoryId),
+                sort_order: idx
+            }));
+
+            try {
+                const response = await fetch('/web/homes/categories/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categories })
+                });
+                if (!response.ok) throw new Error('Failed to save order');
+            } catch (err) {
+                console.error('Error saving category order:', err);
+            }
+        }
+    }
+</script>
+{% endblock %}

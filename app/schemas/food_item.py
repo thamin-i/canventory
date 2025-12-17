@@ -15,6 +15,7 @@ class FoodItemBase(BaseModel):
     quantity: int = Field(..., ge=1)
     expiration_date: datetime
     category: str = Field("other", max_length=50)
+    location_id: int | None = Field(None, description="Storage location ID")
     description: str | None = Field(None, max_length=1000)
 
 
@@ -47,6 +48,10 @@ class FoodItemUpdate(BaseModel):
     quantity: int | None = Field(None, ge=0)
     expiration_date: datetime | None = None
     category: str | None = Field(None, max_length=50)
+    location_id: int | None = Field(None, description="Storage location ID")
+    clear_location: bool | None = Field(
+        False, description="Set to true to clear the location"
+    )
     description: str | None = Field(None, max_length=1000)
     image_base64: str | None = Field(
         None, description="Base64 encoded image data (optional)"
@@ -62,6 +67,7 @@ class FoodItemResponse(FoodItemBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    location_name: str | None = None
     expiration_status: ExpirationStatus
     days_until_expiration: int
     has_image: bool
